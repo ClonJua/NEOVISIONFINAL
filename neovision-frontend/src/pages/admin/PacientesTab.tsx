@@ -107,6 +107,11 @@ export default function PacientesTab() {
   };
   const [form, setForm] = useState<CrearPacienteRequest>(FORM_VACIO);
   const esMenor = form.tipoDocumento === 'TI' || form.tipoDocumento === 'RC';
+  // Sin correo no se crea cuenta de acceso: el paciente existe solo como sujeto
+  // clinico (tipico en adultos mayores que no tienen correo).
+  const quiereCuenta = form.correo.trim() !== '';
+  // Al editar: si el paciente ya tenia correo, es su usuario de ingreso.
+  const tieneCuenta = !!editandoId && quiereCuenta;
 
   const resetForm = () => {
     setForm(FORM_VACIO);
@@ -128,7 +133,7 @@ export default function PacientesTab() {
 
   const handleEditar = (p: PacienteResponse) => {
     setForm({
-      nombre: p.nombre, apellido: p.apellido, correo: p.correo, contrasena: '',
+      nombre: p.nombre, apellido: p.apellido, correo: p.correo ?? '', contrasena: '',
       tipoDocumento: p.tipoDocumento, numeroDocumento: p.numeroDocumento, fechaNacimiento: p.fechaNacimiento, telefono: p.telefono,
       representanteNombre: p.representanteNombre ?? '', representanteDocumento: p.representanteDocumento ?? '', representanteParentesco: p.representanteParentesco ?? '',
     });
@@ -186,7 +191,7 @@ export default function PacientesTab() {
       setResetPassPaciente(null);
       setNuevaContrasena('');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al restablecer la contrasena');
+      toast.error(err.response?.data?.message || 'Error al restablecer la contraseña');
     } finally {
       setReseteando(false);
     }
@@ -201,7 +206,7 @@ export default function PacientesTab() {
     if (filtroTipoDoc && p.tipoDocumento !== filtroTipoDoc) return false;
     if (!busqueda) return true;
     const q = busqueda.toLowerCase();
-    return `${p.nombre} ${p.apellido}`.toLowerCase().includes(q) || p.numeroDocumento.includes(q) || p.correo.toLowerCase().includes(q);
+    return `${p.nombre} ${p.apellido}`.toLowerCase().includes(q) || p.numeroDocumento.includes(q) || (p.correo ?? '').toLowerCase().includes(q);
   }), [pacientes, filtroEstado, filtroTipoDoc, busqueda]);
 
   const { activeIndex, setActiveIndex } = useRowNavigation({
@@ -236,18 +241,25 @@ export default function PacientesTab() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
             </div>
           </div>
-          <div className={editandoId ? '' : 'grid grid-cols-2 gap-4'}>
+          <div className={editandoId || !quiereCuenta ? '' : 'grid grid-cols-2 gap-4'}>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Correo</label>
-              <input type="email" value={form.correo} onChange={e => setForm({...form, correo: e.target.value})} required
-                disabled={!!editandoId} placeholder="paciente@correo.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm disabled:bg-slate-100" />
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Correo <span className="font-normal text-slate-400">(opcional)</span>
+              </label>
+              <input type="email" value={form.correo} onChange={e => setForm({...form, correo: e.target.value})}
+                placeholder="Dejalo vacio si el paciente no tiene correo"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
+              <p className="text-xs text-slate-500 mt-1">
+                {tieneCuenta
+                  ? 'Este paciente ingresa al sistema con este correo: si lo cambias, debera volver a iniciar sesion.'
+                  : 'Sin correo no se crea cuenta de acceso: el paciente no ingresa al sistema y se le avisa por telefono.'}
+              </p>
             </div>
-            {!editandoId && (
+            {!editandoId && quiereCuenta && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Contrasena</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
                 <input type="password" value={form.contrasena} onChange={e => setForm({...form, contrasena: e.target.value})}
-                  required minLength={12} placeholder="Minimo 12 caracteres"
+                  required minLength={12} placeholder="Mínimo 12 caracteres"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
               </div>
             )}
@@ -265,7 +277,7 @@ export default function PacientesTab() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Numero documento</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Número documento</label>
               <input type="text" value={form.numeroDocumento}
                 onChange={e => { if (/^\d{0,15}$/.test(e.target.value)) setForm({...form, numeroDocumento: e.target.value}); }}
                 required placeholder="1234567890"
@@ -276,7 +288,7 @@ export default function PacientesTab() {
               <input type="tel" value={form.telefono}
                 onChange={e => { if (/^\d{0,10}$/.test(e.target.value)) setForm({...form, telefono: e.target.value}); }}
                 required pattern="3\d{9}" maxLength={10} placeholder="3001234567"
-                title="Celular colombiano: 10 digitos, inicia con 3"
+                title="Celular colombiano: 10 dígitos, inicia con 3"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
             </div>
           </div>
@@ -317,7 +329,7 @@ export default function PacientesTab() {
               <input type="checkbox" checked={!!form.autorizaTratamientoDatos}
                 onChange={e => setForm({ ...form, autorizaTratamientoDatos: e.target.checked })}
                 className="mt-0.5 rounded" />
-              <span>El paciente autoriza el tratamiento de sus datos personales y clinicos (Ley 1581 de 2012).</span>
+              <span>El paciente autoriza el tratamiento de sus datos personales y clínicos (Ley 1581 de 2012).</span>
             </label>
           )}
           <div className="flex gap-3">
@@ -341,10 +353,10 @@ export default function PacientesTab() {
         <select value={filtroTipoDoc} onChange={e => setFiltroTipoDoc(e.target.value)}
           className="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400">
           <option value="">Todos los documentos</option>
-          <option value="CC">CC - Cedula de Ciudadania</option>
+          <option value="CC">CC - Cédula de Ciudadanía</option>
           <option value="TI">TI - Tarjeta de Identidad</option>
           <option value="RC">RC - Registro Civil</option>
-          <option value="CE">CE - Cedula de Extranjeria</option>
+          <option value="CE">CE - Cédula de Extranjería</option>
           <option value="PA">PA - Pasaporte</option>
         </select>
         <input ref={searchRef} type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
@@ -363,7 +375,7 @@ export default function PacientesTab() {
               <th className="text-left px-4 py-3 font-medium text-slate-600">Nombre</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Correo</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Documento</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Telefono</th>
+              <th className="text-left px-4 py-3 font-medium text-slate-600">Teléfono</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Estado</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Acciones</th>
             </tr>
@@ -377,7 +389,9 @@ export default function PacientesTab() {
                 <tr onClick={() => setActiveIndex(i)}
                   className={`border-b border-slate-100 cursor-pointer ${activeIndex === i ? 'bg-bosque/5 ring-1 ring-inset ring-bosque/30' : ''}`}>
                   <td className="px-4 py-3">{p.nombre} {p.apellido}</td>
-                  <td className="px-4 py-3 text-slate-500">{p.correo}</td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {p.correo ?? <span className="italic text-slate-400">Sin correo · avisar por teléfono</span>}
+                  </td>
                   <td className="px-4 py-3 text-slate-500">{p.tipoDocumento} {p.numeroDocumento}</td>
                   <td className="px-4 py-3 text-slate-500">{p.telefono}</td>
                   <td className="px-4 py-3">
@@ -391,14 +405,20 @@ export default function PacientesTab() {
                         className="text-emerald-700 hover:text-emerald-800 text-xs font-medium">Historial</button>
                       <button onClick={() => handleEditar(p)}
                         className="text-blue-600 hover:text-blue-700 text-xs font-medium">Editar</button>
-                      <button onClick={() => { setResetPassPaciente(p); setNuevaContrasena(''); }}
-                        className="text-slate-500 hover:text-slate-700 text-xs font-medium">Restablecer contrasena</button>
-                      {p.activo ? (
-                        <button onClick={() => handleDesactivar(p.idPaciente)}
-                          className="text-red-600 hover:text-red-700 text-xs font-medium">Desactivar</button>
-                      ) : (
-                        <button onClick={async () => { await adminService.reactivarPaciente(p.idPaciente); await cargar(); }}
-                          className="text-emerald-600 hover:text-emerald-700 text-xs font-medium">Reactivar</button>
+                      {/* Sin correo no hay cuenta: restablecer contrasena o activar/desactivar
+                          el acceso no significa nada para estos pacientes. */}
+                      {p.correo && (
+                        <>
+                          <button onClick={() => { setResetPassPaciente(p); setNuevaContrasena(''); }}
+                            className="text-slate-500 hover:text-slate-700 text-xs font-medium">Restablecer contraseña</button>
+                          {p.activo ? (
+                            <button onClick={() => handleDesactivar(p.idPaciente)}
+                              className="text-red-600 hover:text-red-700 text-xs font-medium">Desactivar</button>
+                          ) : (
+                            <button onClick={async () => { await adminService.reactivarPaciente(p.idPaciente); await cargar(); }}
+                              className="text-emerald-600 hover:text-emerald-700 text-xs font-medium">Reactivar</button>
+                          )}
+                        </>
                       )}
                       <button onClick={async () => { if (confirm('¿Eliminar permanentemente este paciente? Esta acción no se puede deshacer.')) { try { await adminService.eliminarPaciente(p.idPaciente); await cargar(); } catch (err: unknown) { const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al eliminar'; setError(msg); toast.error(msg); } } }}
                         className="text-red-400 hover:text-red-600 text-xs font-medium">Eliminar</button>
@@ -419,12 +439,12 @@ export default function PacientesTab() {
       </div>
 
       <Modal open={!!resetPassPaciente} onClose={() => setResetPassPaciente(null)}
-        title="Restablecer contrasena" description={resetPassPaciente ? `${resetPassPaciente.nombre} ${resetPassPaciente.apellido}` : ''}>
+        title="Restablecer contraseña" description={resetPassPaciente ? `${resetPassPaciente.nombre} ${resetPassPaciente.apellido}` : ''}>
         <p className="text-xs text-slate-500 mb-3">
-          No hay flujo de recuperacion por correo: fija aqui una nueva contrasena para el paciente.
+          No hay flujo de recuperación por correo: fija aquí una nueva contraseña para el paciente.
         </p>
         <input type="password" value={nuevaContrasena} onChange={e => setNuevaContrasena(e.target.value)}
-          placeholder="Minimo 12 caracteres" minLength={12} autoFocus
+          placeholder="Mínimo 12 caracteres" minLength={12} autoFocus
           className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm mb-4" />
         <button onClick={handleResetearContrasena} disabled={reseteando}
           className="w-full bg-bosque hover:bg-bosque-dark text-white text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50">

@@ -49,11 +49,21 @@ public class Paciente {
     @Column(name = "telefono", nullable = false, length = 20)
     private String telefono;
 
-    @Column(name = "correo", nullable = false, length = 100, unique = true)
+    /**
+     * Correo del paciente. Opcional: hay pacientes (típicamente adultos mayores)
+     * que no tienen. Sin correo no se les envía confirmación ni recordatorio; el
+     * contacto es por {@link #telefono}, que sí es obligatorio.
+     */
+    @Column(name = "correo", length = 100, unique = true)
     private String correo;
 
+    /**
+     * Cuenta de acceso al sistema. Opcional: un paciente es un sujeto de atención
+     * clínica, no necesariamente un usuario. Si es {@code null}, el paciente tiene
+     * historia clínica y citas pero no inicia sesión — la secretaría opera por él.
+     */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario", nullable = false, unique = true)
+    @JoinColumn(name = "id_usuario", unique = true)
     private Usuario usuario;
 
     /** Autorización de tratamiento de datos personales/clínicos (Ley 1581/2012). */

@@ -24,6 +24,14 @@ const EMPTY: RegistroRequest = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * El dominio institucional queda reservado al rol academico. Si un estudiante
+ * abriera aqui su cuenta de paciente, ese correo quedaria ocupado (es el
+ * identificador unico de acceso) y despues no se le podria crear la cuenta de
+ * estudiante. El backend tambien lo rechaza; aqui se avisa antes de enviar.
+ */
+const DOMINIO_INSTITUCIONAL = '@unbosque.edu.co';
+
 function esMenorDeEdad(tipoDocumento: string): boolean {
   return tipoDocumento === 'TI' || tipoDocumento === 'RC';
 }
@@ -34,6 +42,9 @@ function validar(form: RegistroRequest): Errores {
   if (!form.apellido.trim()) e.apellido = 'Requerido';
   if (!form.correo.trim())   e.correo = 'Requerido';
   else if (!EMAIL_RE.test(form.correo.trim())) e.correo = 'Correo inválido';
+  else if (form.correo.trim().toLowerCase().endsWith(DOMINIO_INSTITUCIONAL)) {
+    e.correo = 'El correo institucional es solo para docentes y estudiantes. Usa uno personal.';
+  }
   if (!form.contrasena)            e.contrasena = 'Requerido';
   else if (form.contrasena.length < 12) e.contrasena = 'Mínimo 12 caracteres';
   if (!form.numeroDocumento)       e.numeroDocumento = 'Requerido';
@@ -92,7 +103,7 @@ export function RegisterScreen({ navigation }: Props) {
           <Input label="Nombre" value={form.nombre} onChangeText={(t) => set('nombre', t)}
             placeholder="Juan" error={errores.nombre} />
           <Input label="Apellido" value={form.apellido} onChangeText={(t) => set('apellido', t)}
-            placeholder="Perez" error={errores.apellido} />
+            placeholder="Pérez" error={errores.apellido} />
           <Input label="Correo electrónico" value={form.correo} onChangeText={(t) => set('correo', t)}
             placeholder="correo@ejemplo.com" keyboardType="email-address" autoCapitalize="none"
             error={errores.correo} />
@@ -115,7 +126,7 @@ export function RegisterScreen({ navigation }: Props) {
             })}
           </View>
 
-          <Input label="Numero de documento" value={form.numeroDocumento}
+          <Input label="Número de documento" value={form.numeroDocumento}
             onChangeText={(t) => /^\d{0,15}$/.test(t) && set('numeroDocumento', t)}
             placeholder="1234567890" keyboardType="number-pad" error={errores.numeroDocumento} />
 

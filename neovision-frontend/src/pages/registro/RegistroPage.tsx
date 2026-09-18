@@ -40,6 +40,16 @@ export default function RegistroPage() {
       toast.error('La contraseña no puede contener emojis');
       return;
     }
+    // El correo institucional queda reservado al rol academico: si un estudiante
+    // abriera aqui su cuenta de paciente, ese correo quedaria ocupado (es el
+    // identificador unico de acceso) y luego no se le podria crear la cuenta
+    // academica. El backend tambien lo rechaza; aqui se avisa antes de enviar.
+    if (form.correo.trim().toLowerCase().endsWith('@unbosque.edu.co')) {
+      const msg = 'El correo institucional es solo para docentes y estudiantes. Regístrate con un correo personal.';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setLoading(true);
     try {
       const res = await authService.registro(form);
@@ -84,16 +94,16 @@ export default function RegistroPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Correo electronico</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Correo electrónico</label>
             <input type="email" name="correo" value={form.correo} onChange={handleChange} required
               placeholder="correo@ejemplo.com"
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-bosque focus:border-bosque outline-none transition" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Contrasena</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
             <input type="password" name="contrasena" value={form.contrasena} onChange={handleChange} required
-              minLength={12} placeholder="Minimo 12 caracteres"
+              minLength={12} placeholder="Mínimo 12 caracteres"
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-bosque focus:border-bosque outline-none transition" />
           </div>
 
@@ -102,15 +112,15 @@ export default function RegistroPage() {
               <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de documento</label>
               <select name="tipoDocumento" value={form.tipoDocumento} onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-bosque focus:border-bosque outline-none transition bg-white">
-                <option value="CC">Cedula de Ciudadania</option>
+                <option value="CC">Cédula de Ciudadanía</option>
                 <option value="TI">Tarjeta de Identidad</option>
                 <option value="RC">Registro Civil</option>
-                <option value="CE">Cedula de Extranjeria</option>
+                <option value="CE">Cédula de Extranjería</option>
                 <option value="PA">Pasaporte</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Numero de documento</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Número de documento</label>
               <input type="text" name="numeroDocumento" value={form.numeroDocumento}
                 onChange={e => { if (/^\d{0,15}$/.test(e.target.value)) setForm({...form, numeroDocumento: e.target.value}); }}
                 required placeholder="1234567890"
@@ -129,7 +139,7 @@ export default function RegistroPage() {
               <input type="tel" name="telefono" value={form.telefono}
                 onChange={e => { if (/^\d{0,10}$/.test(e.target.value)) setForm({...form, telefono: e.target.value}); }}
                 required pattern="3\d{9}" maxLength={10}
-                placeholder="3001234567" title="Celular colombiano: 10 digitos, inicia con 3"
+                placeholder="3001234567" title="Celular colombiano: 10 dígitos, inicia con 3"
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-bosque focus:border-bosque outline-none transition" />
             </div>
           </div>
@@ -167,7 +177,7 @@ export default function RegistroPage() {
             <input type="checkbox" checked={form.autorizaTratamientoDatos} required
               onChange={e => setForm({ ...form, autorizaTratamientoDatos: e.target.checked })}
               className="mt-0.5 rounded" />
-            <span>Autorizo el tratamiento de mis datos personales y clinicos conforme a la
+            <span>Autorizo el tratamiento de mis datos personales y clínicos conforme a la
               <strong> Ley 1581 de 2012</strong> y la <strong>Resolucion 1995 de 1999</strong>, con fines de
               atencion optometrica y academica en el Programa de Optometria de la Universidad El Bosque.</span>
           </label>

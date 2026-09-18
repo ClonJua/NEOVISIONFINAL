@@ -18,4 +18,8 @@ public class SolicitudResponse {
     private String motivoRechazo;
     private String resueltaPorCorreo;
     private LocalDateTime fechaResolucion;
+    /** DIGITAL (la creó el paciente autenticado) o PRESENCIAL (la registró la secretaría). */
+    private String canal;
+    /** En PRESENCIAL, quién verificó la identidad del paciente y registró la solicitud. */
+    private String creadaPorCorreo;
 }

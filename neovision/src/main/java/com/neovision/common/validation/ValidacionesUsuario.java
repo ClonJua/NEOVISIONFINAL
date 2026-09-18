@@ -63,10 +63,45 @@ public class ValidacionesUsuario {
         }
     }
 
+    /**
+     * Normaliza un correo para usarlo como identificador de acceso: recorta
+     * espacios y lo pasa a minúsculas. Postgres compara texto distinguiendo
+     * mayúsculas, así que sin esto un correo guardado como
+     * "LSHMORALES@unbosque.edu.co" no casaría con el que llega en el login
+     * (token de Microsoft o formulario), en minúsculas. Devuelve {@code null}
+     * si la entrada es {@code null}.
+     */
+    public static String normalizarCorreo(String correo) {
+        return correo == null ? null : correo.trim().toLowerCase();
+    }
+
+    private static final String DOMINIO_INSTITUCIONAL = "@unbosque.edu.co";
+
     /** Exige que el correo sea institucional (@unbosque.edu.co). Aplica a docentes y estudiantes. */
     public void validarCorreoInstitucional(String correo, String rol) {
-        if (correo == null || !correo.toLowerCase().endsWith("@unbosque.edu.co")) {
-            throw new RuntimeException("El correo del " + rol + " debe ser institucional (@unbosque.edu.co)");
+        if (correo == null || !correo.toLowerCase().endsWith(DOMINIO_INSTITUCIONAL)) {
+            throw new RuntimeException("El correo del " + rol + " debe ser institucional (" + DOMINIO_INSTITUCIONAL + ")");
+        }
+    }
+
+    /**
+     * Prohíbe el dominio institucional en las cuentas de paciente.
+     *
+     * <p>El correo es el identificador único de acceso ({@code usuario.correo}), así
+     * que si un estudiante abre su cuenta de paciente con el correo institucional,
+     * ese mismo correo queda ocupado y luego no se le puede crear la cuenta
+     * académica. Reservar el dominio institucional para el rol académico evita la
+     * colisión: la misma persona puede ser estudiante y paciente a la vez — la
+     * cédula ya lo permite, porque su unicidad es por rol, no global.
+     *
+     * <p>Quien no tenga correo personal puede registrarse igualmente: un paciente
+     * no necesita cuenta ni correo.
+     */
+    public void validarCorreoNoInstitucional(String correo) {
+        if (correo != null && correo.toLowerCase().endsWith(DOMINIO_INSTITUCIONAL)) {
+            throw new RuntimeException(
+                    "El correo institucional (" + DOMINIO_INSTITUCIONAL + ") está reservado para docentes y estudiantes. "
+                            + "Usa un correo personal, o deja el campo vacío si el paciente no tiene correo.");
         }
     }
 

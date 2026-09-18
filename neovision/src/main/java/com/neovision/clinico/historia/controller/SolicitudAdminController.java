@@ -1,5 +1,6 @@
 package com.neovision.clinico.historia.controller;
 
+import com.neovision.clinico.historia.dto.CrearSolicitudPresencialRequest;
 import com.neovision.clinico.historia.dto.RechazarSolicitudRequest;
 import com.neovision.clinico.historia.dto.SolicitudResponse;
 import com.neovision.clinico.historia.service.SolicitudHistoriaService;
@@ -7,6 +8,8 @@ import com.neovision.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +37,21 @@ public class SolicitudAdminController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<SolicitudResponse>>> listar() {
         return ResponseEntity.ok(ApiResponse.ok("Solicitudes", service.listarTodas()));
+    }
+
+    @Operation(summary = "Registrar solicitud presencial",
+            description = "Para el paciente que pide su historia en la clínica y no tiene cuenta ni correo. "
+                    + "Registra la solicitud a su nombre (dejando constancia de quién verificó su identidad) "
+                    + "y devuelve el PDF para entregarlo en mano. Nace ya aprobada: el paciente está presente.")
+    @PostMapping("/presencial")
+    public ResponseEntity<byte[]> crearPresencial(
+            @Valid @RequestBody CrearSolicitudPresencialRequest req, Authentication auth) {
+        byte[] pdf = service.crearPresencial(req.getIdPaciente(), req.getMotivo(), auth);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=historia-clinica-" + req.getIdPaciente() + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
     @Operation(summary = "Aprobar solicitud", description = "Genera el PDF de la historia y lo envía al correo registrado del paciente.")

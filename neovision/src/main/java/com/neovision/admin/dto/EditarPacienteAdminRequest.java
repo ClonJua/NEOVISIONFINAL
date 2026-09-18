@@ -35,8 +35,9 @@ public class EditarPacienteAdminRequest {
     @NotBlank
     private String telefono;
 
-    @Schema(description = "Correo del paciente.", example = "juan.perez@gmail.com")
-    @NotBlank
+    @Schema(description = "Correo personal del paciente. Opcional: déjalo vacío si no tiene. "
+            + "No se admite el dominio institucional (@unbosque.edu.co).",
+            example = "juan.perez@gmail.com")
     @Email
     private String correo;
 

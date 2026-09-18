@@ -1,6 +1,7 @@
 package com.neovision.clinico.historia.entity;
 
 import com.neovision.clinico.entity.Paciente;
+import com.neovision.clinico.historia.enums.CanalSolicitud;
 import com.neovision.clinico.historia.enums.EstadoSolicitud;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -64,4 +65,21 @@ public class SolicitudHistoria {
 
     @Column(name = "fecha_resolucion")
     private LocalDateTime fechaResolucion;
+
+    /**
+     * Canal por el que llegó. En {@link CanalSolicitud#PRESENCIAL} la identidad
+     * del paciente la verificó quien aparece en {@link #creadaPorCorreo}, no la
+     * autenticación.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "canal", nullable = false, length = 20)
+    private CanalSolicitud canal = CanalSolicitud.DIGITAL;
+
+    /**
+     * Quién registró la solicitud. En el canal digital es el propio paciente
+     * (queda {@code null}); en el presencial, la persona de secretaría que
+     * verificó el documento — es el responsable de esa verificación.
+     */
+    @Column(name = "creada_por_correo", length = 100)
+    private String creadaPorCorreo;
 }

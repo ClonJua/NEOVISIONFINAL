@@ -43,6 +43,7 @@ export interface PacienteResponse {
   numeroDocumento: string;
   fechaNacimiento: string;
   telefono: string;
-  correo: string;
+  /** null si el paciente se registro sin correo (no tiene cuenta de acceso). */
+  correo: string | null;
   activo: boolean;
 }

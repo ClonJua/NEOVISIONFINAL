@@ -17,7 +17,9 @@ export function PacientePickerModal({ visible, pacientes, onSelect, onClose }: P
     const q = query.trim().toLowerCase();
     if (!q) return pacientes;
     return pacientes.filter(p =>
-      `${p.nombre} ${p.apellido} ${p.numeroDocumento} ${p.correo}`.toLowerCase().includes(q)
+      // El correo es opcional: sin la guarda, los pacientes sin correo aportarian
+      // la cadena "null" al indice de busqueda.
+      `${p.nombre} ${p.apellido} ${p.numeroDocumento} ${p.correo ?? ''}`.toLowerCase().includes(q)
     );
   }, [pacientes, query]);
 

@@ -3,7 +3,6 @@ package com.neovision.admin.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,14 +19,15 @@ public class CrearPacienteRequest {
     @NotBlank
     private String apellido;
 
-    @Schema(description = "Correo del paciente.", example = "juan.perez@gmail.com")
-    @NotBlank
+    @Schema(description = "Correo personal del paciente. Opcional: déjalo vacío si no tiene. "
+            + "No se admite el dominio institucional (@unbosque.edu.co), reservado para docentes y estudiantes.",
+            example = "juan.perez@gmail.com")
     @Email
     private String correo;
 
-    @Schema(description = "Contraseña para ingresar al sistema. Mínimo 12 caracteres.", example = "ClaveSegura2026")
-    @NotBlank
-    @Size(min = 12)
+    @Schema(description = "Contraseña para ingresar al sistema. Mínimo 12 caracteres. "
+            + "Solo aplica si se indicó correo: sin correo no se crea cuenta de acceso.",
+            example = "ClaveSegura2026")
     private String contrasena;
 
     @Schema(description = "Tipo de documento: CC, TI, RC, CE o PA.", example = "CC")

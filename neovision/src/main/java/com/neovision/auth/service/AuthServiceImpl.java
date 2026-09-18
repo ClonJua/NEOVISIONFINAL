@@ -63,6 +63,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
 
+        request.setCorreo(ValidacionesUsuario.normalizarCorreo(request.getCorreo()));
         loginAttemptService.verificarNoBloqueado(request.getCorreo());
 
         Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
@@ -93,6 +94,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse registro(RegistroRequest request) {
+        request.setCorreo(ValidacionesUsuario.normalizarCorreo(request.getCorreo()));
+        // El dominio institucional queda reservado al rol academico: si un estudiante
+        // abriera aqui su cuenta de paciente, ese correo quedaria ocupado y despues no
+        // se le podria crear la cuenta de estudiante (usuario.correo es unico global).
+        validaciones.validarCorreoNoInstitucional(request.getCorreo());
         if (usuarioRepository.existsByCorreo(request.getCorreo())) {
             throw new CorreoYaRegistradoException("El correo " + request.getCorreo() + " ya está registrado");
         }
@@ -151,7 +157,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse loginMicrosoft(MicrosoftLoginRequest request) {
-        String correo = microsoftTokenService.extractEmail(request.getAccessToken());
+        String correo = ValidacionesUsuario.normalizarCorreo(microsoftTokenService.extractEmail(request.getAccessToken()));
 
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new UsuarioNoRegistradoException("No estás registrado en el sistema. Contacta a la secretaría"));
