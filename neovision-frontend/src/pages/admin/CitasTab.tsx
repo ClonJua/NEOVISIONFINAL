@@ -391,10 +391,10 @@ export default function CitasTab() {
 
           {/* Sesion */}
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Sesion *</label>
+            <label className="block text-sm font-medium text-slate-600 mb-1">Sesión *</label>
             <select value={idSesion} onChange={e => { setIdSesion(parseInt(e.target.value) || ''); setIdEstudiante(''); setIdEstudiante2(''); }}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400">
-              <option value="">Seleccionar sesion...</option>
+              <option value="">Seleccionar sesión...</option>
               {sesiones.map(s => (
                 <option key={s.idSesion} value={s.idSesion}>
                   {s.fecha} | {s.horaInicio}-{s.horaFin} | {s.nombreEspacio ?? 'Sin espacio'}/{s.nombreSalon ?? 'Sin salon'} | Doc: {s.nombreDocente}
@@ -471,7 +471,7 @@ export default function CitasTab() {
                   <input placeholder="Correo *" type="email" value={nuevoPac.correo}
                     onChange={e => setNuevoPac({ ...nuevoPac, correo: e.target.value })}
                     className="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400" />
-                  <input placeholder="Contrasena *" type="password" value={nuevoPac.contrasena}
+                  <input placeholder="Contraseña *" type="password" value={nuevoPac.contrasena}
                     onChange={e => setNuevoPac({ ...nuevoPac, contrasena: e.target.value })}
                     className="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400" />
                 </div>
@@ -481,7 +481,7 @@ export default function CitasTab() {
                     className="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400">
                     {TIPOS_DOCUMENTO.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
-                  <input placeholder="Numero documento *" value={nuevoPac.numeroDocumento}
+                  <input placeholder="Número documento *" value={nuevoPac.numeroDocumento}
                     onChange={e => setNuevoPac({ ...nuevoPac, numeroDocumento: e.target.value })}
                     className="col-span-2 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400" />
                 </div>
@@ -490,7 +490,7 @@ export default function CitasTab() {
                     <label className="block text-xs text-slate-500 mb-1">Fecha nacimiento *</label>
                     <DateScroller value={nuevoPac.fechaNacimiento} onChange={fecha => setNuevoPac({ ...nuevoPac, fechaNacimiento: fecha })} maxDate={new Date().toISOString().split('T')[0]} />
                   </div>
-                  <input placeholder="Telefono *" value={nuevoPac.telefono}
+                  <input placeholder="Teléfono *" value={nuevoPac.telefono}
                     onChange={e => setNuevoPac({ ...nuevoPac, telefono: e.target.value })}
                     className="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400 mt-auto" />
                 </div>

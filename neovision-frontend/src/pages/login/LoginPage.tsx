@@ -91,7 +91,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-slate-800">NeoVision</h1>
-            <p className="text-sm text-slate-500 mt-1">Clinica de Optometria · Universidad El Bosque</p>
+            <p className="text-sm text-slate-500 mt-1">Clínica de Optometría · Universidad El Bosque</p>
           </div>
 
           {/* Selector de modo */}
@@ -129,7 +129,7 @@ export default function LoginPage() {
             <>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                  label="Correo electronico"
+                  label="Correo electrónico"
                   type="email"
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
@@ -138,7 +138,7 @@ export default function LoginPage() {
                   autoComplete="email"
                 />
                 <Input
-                  label="Contrasena"
+                  label="Contraseña"
                   type="password"
                   value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}

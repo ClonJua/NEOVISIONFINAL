@@ -150,7 +150,7 @@ public class DocenteController {
     }
 
     /** Confirma la asistencia (marca COMPLETADO) de una cita de una sesion asignada al docente autenticado. */
-    @io.swagger.v3.oas.annotations.Operation(summary = "Confirmar asistencia", description = "El docente responsable de la sesion confirma que el paciente asistio.")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Confirmar asistencia", description = "El docente responsable de la sesión confirma que el paciente asistió.")
     @PatchMapping("/citas/{idCita}/confirmar")
     public ResponseEntity<ApiResponse<CitaResponse>> confirmarAsistencia(
             Authentication auth,

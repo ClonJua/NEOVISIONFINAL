@@ -276,7 +276,7 @@ public class ExportServiceImpl implements ExportService {
             doc.add(new Paragraph(" "));
             Font footerFont = new Font(Font.FontFamily.HELVETICA, 7, Font.ITALIC, PDF_SUBTITULO);
             doc.add(new Paragraph(
-                    "Generado por el sistema NeoVision — Clinica de Optometria Universitaria",
+                    "Generado por el sistema NeoVision — Clínica de Optometría Universitaria",
                     footerFont));
             doc.close();
 

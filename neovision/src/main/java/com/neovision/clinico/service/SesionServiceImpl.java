@@ -334,7 +334,7 @@ public class SesionServiceImpl implements SesionService {
     @Transactional
     public SesionResponse editarSesion(Integer id, SesionRequest request) {
         SesionPractica sesion = sesionRepository.findById(id)
-                .orElseThrow(() -> new SesionNoEncontradaException("Sesion no encontrada"));
+                .orElseThrow(() -> new SesionNoEncontradaException("Sesión no encontrada"));
 
         Salon salon = null;
         if (request.getIdSalon() != null) {
@@ -373,7 +373,7 @@ public class SesionServiceImpl implements SesionService {
     @Transactional
     public void desactivarSesion(Integer id) {
         SesionPractica sesion = sesionRepository.findById(id)
-                .orElseThrow(() -> new SesionNoEncontradaException("Sesion no encontrada"));
+                .orElseThrow(() -> new SesionNoEncontradaException("Sesión no encontrada"));
         sesion.setActivo(false);
         sesionRepository.save(sesion);
     }
@@ -382,7 +382,7 @@ public class SesionServiceImpl implements SesionService {
     @Transactional
     public void eliminarSesion(Integer id) {
         SesionPractica sesion = sesionRepository.findById(id)
-                .orElseThrow(() -> new SesionNoEncontradaException("Sesion no encontrada"));
+                .orElseThrow(() -> new SesionNoEncontradaException("Sesión no encontrada"));
         try {
             sesion.getEstudiantes().clear();
             sesionRepository.save(sesion);

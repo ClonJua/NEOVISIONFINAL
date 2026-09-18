@@ -123,13 +123,13 @@ export default function EspaciosTab() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del espacio</label>
               <input type="text" value={espacioForm.nombre} onChange={e => setEspacioForm({...espacioForm, nombre: e.target.value})} required
-                placeholder="Ej: Clinica de Optometria"
+                placeholder="Ej: Clínica de Optometría"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Descripcion</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
               <input type="text" value={espacioForm.descripcion} onChange={e => setEspacioForm({...espacioForm, descripcion: e.target.value})}
-                placeholder="Descripcion opcional"
+                placeholder="Descripción opcional"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
             </div>
           </div>

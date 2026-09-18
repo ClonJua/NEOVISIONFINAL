@@ -43,9 +43,9 @@ public class GmailEmailService implements EmailService {
                                    nombreEstudiante, nombreDocente, nombrePaciente, especialidad)
                     + bloqueRecordatorio(observacionRecordatorio));
 
-            enviar(correoPaciente, "NeoVision - Confirmacion de tu cita (" + fecha + ")", html);
+            enviar(correoPaciente, "NeoVision - Confirmación de tu cita (" + fecha + ")", html);
             enviar(correoEstudiante, "NeoVision - Nueva cita asignada (" + fecha + ")", html);
-            enviar(correoDocente, "NeoVision - Nueva cita en tu sesion (" + fecha + ")", html);
+            enviar(correoDocente, "NeoVision - Nueva cita en tu sesión (" + fecha + ")", html);
         } catch (Exception e) {
             log.error("GMAIL: Error preparando email de confirmacion de reserva: {}", e.getMessage(), e);
         }
@@ -74,7 +74,7 @@ public class GmailEmailService implements EmailService {
                 enviar(correoPaciente, "NeoVision - Tu cita ha sido cancelada (" + fecha + ")", html);
             }
             enviar(correoEstudiante, "NeoVision - Cita cancelada (" + fecha + ")", html);
-            enviar(correoDocente, "NeoVision - Cita cancelada en tu sesion (" + fecha + ")", html);
+            enviar(correoDocente, "NeoVision - Cita cancelada en tu sesión (" + fecha + ")", html);
         } catch (Exception e) {
             log.error("GMAIL: Error preparando email de cancelacion: {}", e.getMessage(), e);
         }
@@ -102,7 +102,7 @@ public class GmailEmailService implements EmailService {
 
             enviar(correoPaciente, "NeoVision - Tu cita ha sido reprogramada", html);
             enviar(correoEstudiante, "NeoVision - Cita reprogramada (" + fechaNueva + ")", html);
-            enviar(correoDocente, "NeoVision - Cita reprogramada en tu sesion (" + fechaNueva + ")", html);
+            enviar(correoDocente, "NeoVision - Cita reprogramada en tu sesión (" + fechaNueva + ")", html);
         } catch (Exception e) {
             log.error("GMAIL: Error preparando email de reprogramacion: {}", e.getMessage(), e);
         }

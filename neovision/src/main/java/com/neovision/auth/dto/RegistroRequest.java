@@ -35,7 +35,7 @@ public class RegistroRequest {
     private String tipoDocumento;
 
     @Schema(description = "Número de documento de identidad.", example = "1020304050")
-    @NotBlank(message = "El numero de documento es obligatorio")
+    @NotBlank(message = "El número de documento es obligatorio")
     private String numeroDocumento;
 
     @Schema(description = "Fecha de nacimiento en formato YYYY-MM-DD.", example = "2000-05-15")

@@ -13,7 +13,7 @@ export function UnsupportedRoleScreen() {
         <Text style={styles.body}>
           La aplicacion movil esta destinada a pacientes, estudiantes y docentes. Por favor usa el portal web.
         </Text>
-        <Button title="Cerrar sesion" variant="secondary" onPress={() => { logout(); }} />
+        <Button title="Cerrar sesión" variant="secondary" onPress={() => { logout(); }} />
       </View>
     </Screen>
   );

@@ -201,6 +201,17 @@ public class GlobalExceptionHandler {
                         "No se pudo enviar el correo en este momento. Intenta de nuevo más tarde o contacta al administrador."));
     }
 
+    // Spring lo lanza antes de llegar al controller cuando el archivo de una carga
+    // masiva supera spring.servlet.multipart.max-file-size; el mensaje nativo
+    // menciona clases internas, asi que se responde algo legible.
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleArchivoDemasiadoGrande(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("El archivo es demasiado grande (máximo 5 MB)."));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
         return ResponseEntity

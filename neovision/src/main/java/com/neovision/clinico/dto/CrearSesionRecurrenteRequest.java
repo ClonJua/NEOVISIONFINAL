@@ -10,7 +10,7 @@ import java.util.List;
 @Schema(description = "Datos para crear sesiones recurrentes en un rango de fechas para un día de la semana.")
 public class CrearSesionRecurrenteRequest {
 
-    @NotNull(message = "Dia de semana requerido (MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY)")
+    @NotNull(message = "Día de semana requerido (MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY)")
     @Pattern(regexp = "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY")
     private String diaSemana;
 

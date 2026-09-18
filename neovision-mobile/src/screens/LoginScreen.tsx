@@ -49,7 +49,7 @@ export function LoginScreen({ navigation }: Props) {
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={styles.brand}>NeoVision</Text>
-          <Text style={styles.subtitle}>Clinica de Optometria - Universidad El Bosque</Text>
+          <Text style={styles.subtitle}>Clínica de Optometría - Universidad El Bosque</Text>
 
           <View style={styles.modoTabs}>
             <ModoTab label="Soy Paciente"  active={modo === 'paciente'}      onPress={() => cambiarModo('paciente')} />
@@ -61,7 +61,7 @@ export function LoginScreen({ navigation }: Props) {
           {modo === 'paciente' ? (
             <View>
               <Input
-                label="Correo electronico"
+                label="Correo electrónico"
                 value={correo}
                 onChangeText={setCorreo}
                 placeholder="tu@correo.com"
@@ -70,7 +70,7 @@ export function LoginScreen({ navigation }: Props) {
                 autoComplete="email"
               />
               <Input
-                label="Contrasena"
+                label="Contraseña"
                 value={contrasena}
                 onChangeText={setContrasena}
                 placeholder="********"

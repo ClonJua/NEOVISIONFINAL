@@ -91,7 +91,7 @@ public class CitaServiceImpl implements CitaService {
     @Transactional
     public CitaResponse crearBloque(CitaRequest request) {
         SesionPractica sesion = sesionRepository.findById(request.getIdSesion())
-                .orElseThrow(() -> new SesionNoEncontradaException("Sesion no encontrada"));
+                .orElseThrow(() -> new SesionNoEncontradaException("Sesión no encontrada"));
 
         // No permitir citas en sesiones de fechas pasadas
         if (sesion.getFecha().isBefore(LocalDate.now())) {
@@ -178,6 +178,19 @@ public class CitaServiceImpl implements CitaService {
             if ("DISPONIBLE".equals(cita.getEstado())) {
                 cita.setEstado("RESERVADO");
                 cita.setFechaReserva(LocalDateTime.now());
+            }
+        } else if (cita.getPaciente() != null) {
+            // El admin quito el paciente del formulario: liberar el bloque, salvo
+            // que ya exista una atencion de por medio (quedaria la historia
+            // clinica huerfana de la cita que la origino).
+            if (atencionRepository.existsByCitaIdCita(idCita)) {
+                throw new EstadoInvalidoException(
+                        "No se puede quitar el paciente: esta cita ya tiene una atención de historia clínica asociada.");
+            }
+            cita.setPaciente(null);
+            cita.setFechaReserva(null);
+            if ("RESERVADO".equals(cita.getEstado())) {
+                cita.setEstado("DISPONIBLE");
             }
         }
 
@@ -361,7 +374,7 @@ public class CitaServiceImpl implements CitaService {
                         .anyMatch(e -> e.getIdEspecialidad().equals(especialidad.getIdEspecialidad())));
         if (!docentePuedeAtender) {
             throw new EstadoInvalidoException(
-                    "El docente que supervisa esta sesion no atiende la especialidad '"
+                    "El docente que supervisa esta sesión no atiende la especialidad '"
                     + especialidad.getNombre() + "'. Selecciona otro horario.");
         }
 

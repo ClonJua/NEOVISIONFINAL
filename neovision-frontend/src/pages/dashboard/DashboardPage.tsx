@@ -302,7 +302,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Telefono</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Teléfono</label>
             <input type="text" value={formPerfil.telefono} onChange={e => setFormPerfil({...formPerfil, telefono: e.target.value})}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none" />
           </div>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
             tone="slate"
           />
           <StatCard
-            label="Proxima cita"
+            label="Próxima cita"
             value={proximaCita ? (etiquetaRelativa(proximaCita.fechaSesion) || formatFechaCorta(proximaCita.fechaSesion)) : '—'}
             icon={<SparklesIcon size={22} />}
             tone="indigo"
@@ -390,7 +390,7 @@ export default function DashboardPage() {
               <EmptyState
                 icon={<CalendarIcon size={24} />}
                 title="No tienes citas activas"
-                description="Cuando reserves un horario, aparecera aqui."
+                description="Cuando reserves un horario, aparecerá aquí."
                 action={
                   <Button leftIcon={<PlusIcon size={16} />} onClick={() => setTab('agendar')}>
                     Agendar mi primera cita
@@ -475,7 +475,7 @@ export default function DashboardPage() {
               <EmptyState
                 icon={<HistoryIcon size={24} />}
                 title="Sin historial"
-                description="Las citas completadas, canceladas o vencidas apareceran aqui."
+                description="Las citas completadas, canceladas o vencidas aparecerán aquí."
               />
             ) : (
               <GrupoCitas
@@ -544,7 +544,7 @@ export default function DashboardPage() {
         open={!!citaACancelar}
         onClose={() => { setCitaACancelar(null); setObsCancelar(''); }}
         title="Cancelar cita"
-        description="Esta accion liberara el bloque para otros pacientes."
+        description="Esta acción liberará el bloque para otros pacientes."
         footer={
           <>
             <Button variant="ghost" onClick={() => { setCitaACancelar(null); setObsCancelar(''); }}>
@@ -560,7 +560,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <DetallesCita cita={citaACancelar} />
             <Textarea
-              label="Motivo de la cancelacion"
+              label="Motivo de la cancelación"
               placeholder="Ej: tengo un imprevisto laboral"
               value={obsCancelar}
               onChange={(e) => setObsCancelar(e.target.value)}
@@ -591,7 +591,7 @@ function TopBar({ correo, rol, onLogout, onEditPerfil }: { correo: string | null
           </div>
           <div>
             <div className="text-base font-bold text-slate-800 leading-none">NeoVision</div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider">Clinica Optometria</div>
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider">Clínica Optometría</div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -618,8 +618,8 @@ function TopBar({ correo, rol, onLogout, onEditPerfil }: { correo: string | null
           <button
             onClick={onLogout}
             className="text-slate-500 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
-            aria-label="Cerrar sesion"
-            title="Cerrar sesion"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
           >
             <LogOutIcon size={18} />
           </button>
