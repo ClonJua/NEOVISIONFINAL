@@ -187,6 +187,13 @@ export interface AtencionResponse {
   nombrePaciente: string | null; idCita: number | null; fechaCita: string | null;
   estado: EstadoAtencion; fechaAtencion: string; fechaEnvioRevision: string | null;
   fechaFinalizacion: string | null; motivoDevolucion: string | null;
+  /**
+   * Ultimo dia en que el estudiante puede editar (YYYY-MM-DD). Contempla la
+   * ventana de la cita y la que reabre cada devolucion del docente. null si no
+   * aplica (sin cita y nunca devuelta). Lo calcula el backend: no reimplementar.
+   */
+  limiteEdicion: string | null;
+  editablePorEstudiante: boolean;
   idEstudiante: number | null; nombreEstudiante: string | null;
   idDocenteSupervisor: number | null; nombreDocente: string | null;
   motivoConsulta?: string;

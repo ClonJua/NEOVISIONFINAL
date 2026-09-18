@@ -5,6 +5,7 @@ import com.neovision.clinico.entity.Docente;
 import com.neovision.clinico.entity.Estudiante;
 import com.neovision.clinico.entity.Paciente;
 import com.neovision.clinico.entity.SesionPractica;
+import com.neovision.clinico.historia.dto.AdendaRequest;
 import com.neovision.clinico.historia.dto.DiagnosticoDto;
 import com.neovision.clinico.historia.dto.EnviarRevisionRequest;
 import com.neovision.clinico.historia.dto.FinalizarAtencionRequest;
@@ -165,6 +166,45 @@ class AtencionServiceTest {
                 .hasMessageContaining("ventana");
     }
 
+    // La ventana se anclaba solo a la fecha de la cita, y ese reloj seguía corriendo
+    // mientras la atención esperaba revisión. Si el docente tardaba, el estudiante
+    // recibía una devolución que ya no podía corregir: solo reenviarla igual, con lo
+    // que la corrección pedida nunca podía hacerse.
+
+    @Test
+    void guardarBorrador_devolucionTardia_reabreLaVentana() {
+        asignarCitaConFecha(LocalDate.now().minusDays(10)); // ventana de la cita: cerrada hace mucho
+        atencion.setEstado(EstadoAtencion.DEVUELTA);
+        atencion.setFechaDevolucion(java.time.LocalDateTime.now());
+
+        assertThatCode(() -> service.guardarBorrador(10, requestVacio(), authComo(CORREO_ESTUDIANTE)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void guardarBorrador_ventanaDeLaDevolucion_tambienExpira() {
+        // El plazo se reabre, pero sigue acotado: no se edita indefinidamente.
+        asignarCitaConFecha(LocalDate.now().minusDays(10));
+        atencion.setEstado(EstadoAtencion.DEVUELTA);
+        atencion.setFechaDevolucion(java.time.LocalDateTime.now().minusDays(3));
+
+        assertThatThrownBy(() -> service.guardarBorrador(10, requestVacio(), authComo(CORREO_ESTUDIANTE)))
+                .isInstanceOf(HistoriaInmutableException.class)
+                .hasMessageContaining("ventana");
+    }
+
+    @Test
+    void guardarBorrador_devolucionVieja_noRecortaLaVentanaDeLaCita() {
+        // Se toma el mayor de los dos plazos: una devolución antigua no puede dejar
+        // al estudiante peor de lo que estaba por la fecha de la cita.
+        asignarCitaConFecha(LocalDate.now());
+        atencion.setEstado(EstadoAtencion.DEVUELTA);
+        atencion.setFechaDevolucion(java.time.LocalDateTime.now().minusDays(9));
+
+        assertThatCode(() -> service.guardarBorrador(10, requestVacio(), authComo(CORREO_ESTUDIANTE)))
+                .doesNotThrowAnyException();
+    }
+
     @Test
     void guardarBorrador_sinCitaAsociada_noRestringePorFecha() {
         // Sin cita, fechaCita() es null: la validación de ventana se omite (no hay fecha contra la cual medir).
@@ -306,6 +346,18 @@ class AtencionServiceTest {
     }
 
     @Test
+    void finalizar_devuelta_explicaAlDocenteCualEsLaSalida() {
+        // Antes decia solo "Solo se pueden finalizar atenciones que estan en revision",
+        // y el docente no sabia que la salida es pedirle al estudiante que la reenvie.
+        prepararParaFinalizar();
+        atencion.setEstado(EstadoAtencion.DEVUELTA);
+        assertThatThrownBy(() -> service.finalizar(10, new FinalizarAtencionRequest(), authComo(CORREO_DOCENTE)))
+                .isInstanceOf(EstadoInvalidoException.class)
+                .hasMessageContaining("reenvíe")
+                .hasMessageContaining("adenda");
+    }
+
+    @Test
     void finalizar_yaFinalizada_lanzaHistoriaInmutable() {
         prepararParaFinalizar();
         atencion.setEstado(EstadoAtencion.FINALIZADA);
@@ -362,5 +414,68 @@ class AtencionServiceTest {
         assertThat(resp.tieneSello()).isTrue();
         assertThat(resp.valido()).isFalse();
         assertThat(resp.hashRecalculado()).isNotEqualTo(resp.hashAlmacenado());
+    }
+
+    // ===================== Adendas: solo quien participo puede agregar =====================
+    // Antes agregarAdenda() no verificaba nada mas que el estado FINALIZADA:
+    // cualquier estudiante o docente autenticado podia anexar una adenda a la
+    // atencion de un paciente que nunca atendio. Como las adendas son de solo
+    // anexar (append-only), eso habria quedado ahi para siempre.
+
+    private AdendaRequest requestAdenda() {
+        AdendaRequest r = new AdendaRequest();
+        r.setTexto("Se corrige la agudeza visual del ojo derecho registrada en el folio 2");
+        return r;
+    }
+
+    @Test
+    void agregarAdenda_elEstudianteDeLaAtencion_puede() {
+        atencion.setEstado(EstadoAtencion.FINALIZADA);
+        var resp = service.agregarAdenda(10, requestAdenda(), authComo(CORREO_ESTUDIANTE));
+        assertThat(resp).isNotNull();
+    }
+
+    @Test
+    void agregarAdenda_elDocenteSupervisor_puede() {
+        atencion.setEstado(EstadoAtencion.FINALIZADA);
+        var resp = service.agregarAdenda(10, requestAdenda(), authComo(CORREO_DOCENTE));
+        assertThat(resp).isNotNull();
+    }
+
+    @Test
+    void agregarAdenda_elEstudianteQueEsLaParejaDeLaCita_puede() {
+        atencion.setEstado(EstadoAtencion.FINALIZADA);
+        Estudiante pareja = new Estudiante();
+        pareja.setIdEstudiante(3);
+        pareja.setCorreo("pareja@unbosque.edu.co");
+        Cita cita = new Cita();
+        cita.setEstudiante(estudiante);
+        cita.setEstudiante2(pareja);
+        atencion.setCita(cita);
+
+        var resp = service.agregarAdenda(10, requestAdenda(), authComo("pareja@unbosque.edu.co"));
+        assertThat(resp).isNotNull();
+    }
+
+    @Test
+    void agregarAdenda_unEstudianteAjenoALaAtencion_seRechaza() {
+        atencion.setEstado(EstadoAtencion.FINALIZADA);
+        assertThatThrownBy(() -> service.agregarAdenda(10, requestAdenda(), authComo("intruso@unbosque.edu.co")))
+                .isInstanceOf(AccesoNoAutorizadoHistoriaException.class)
+                .hasMessageContaining("no es tuya");
+    }
+
+    @Test
+    void agregarAdenda_unDocenteQueNoEsElSupervisor_seRechaza() {
+        atencion.setEstado(EstadoAtencion.FINALIZADA);
+        assertThatThrownBy(() -> service.agregarAdenda(10, requestAdenda(), authComo("otro.docente@unbosque.edu.co")))
+                .isInstanceOf(AccesoNoAutorizadoHistoriaException.class);
+    }
+
+    @Test
+    void agregarAdenda_siNoEstaFinalizada_seRechazaAunSiendoElDueno() {
+        atencion.setEstado(EstadoAtencion.BORRADOR);
+        assertThatThrownBy(() -> service.agregarAdenda(10, requestAdenda(), authComo(CORREO_ESTUDIANTE)))
+                .hasMessageContaining("finalizadas");
     }
 }

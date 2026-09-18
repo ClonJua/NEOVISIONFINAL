@@ -16,6 +16,7 @@ import com.neovision.clinico.historia.embeddable.SignosVitales;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,6 +37,17 @@ public class AtencionResponse {
     private LocalDateTime fechaEnvioRevision;
     private LocalDateTime fechaFinalizacion;
     private String motivoDevolucion;
+
+    /**
+     * Último día en que el estudiante puede editar los campos clínicos. Es el mayor
+     * entre la ventana de la cita y la que abre la última devolución del docente, de
+     * modo que el tiempo en revisión no consuma su plazo. {@code null} si la atención
+     * no cuelga de una cita y nunca fue devuelta (no aplica la ventana).
+     */
+    private LocalDate limiteEdicion;
+
+    /** {@code true} si hoy el estudiante todavía puede editar. Evita que el cliente reimplemente la regla. */
+    private Boolean editablePorEstudiante;
 
     private Integer idEstudiante;
     private String nombreEstudiante;

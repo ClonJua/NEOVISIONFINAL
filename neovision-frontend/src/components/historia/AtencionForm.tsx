@@ -28,21 +28,18 @@ function initForm(a: AtencionResponse): ClinicalData {
   return f;
 }
 
-const GRACIA_DIAS = 2;
-
-/** ¿Aún se puede editar? Hasta la fecha de la cita + ventana de gracia (oportunidad). */
-function dentroDeVentana(fechaCita: string | null): boolean {
-  if (!fechaCita) return true;
-  const limite = new Date(fechaCita + 'T00:00:00');
-  limite.setDate(limite.getDate() + GRACIA_DIAS);
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  return hoy <= limite;
+/** Fecha YYYY-MM-DD a texto legible, sin que el huso la corra un día. */
+function fechaLegible(iso: string): string {
+  return new Date(iso + 'T00:00:00').toLocaleDateString();
 }
 
 /** Formulario editable de una atención (estudiante). Espeja los 4 folios del papel. */
 export function AtencionForm({ atencion, onClose, onSaved }: Props) {
   const toast = useToast();
-  const editable = dentroDeVentana(atencion.fechaCita);
+  // La ventana la calcula el backend (VentanaEdicion): contempla tanto la fecha de
+  // la cita como la que reabre cada devolución del docente. Antes se recalculaba
+  // aquí contra fechaCita y quedaba desfasada con el servidor tras una devolución.
+  const editable = atencion.editablePorEstudiante;
   const [form, setForm] = useState<ClinicalData>(() => initForm(atencion));
   const [diagnosticos, setDiagnosticos] = useState<DiagnosticoDto[]>(atencion.diagnosticos ?? []);
   const [procedimientos, setProcedimientos] = useState<ProcedimientoDto[]>(atencion.procedimientos ?? []);
@@ -146,9 +143,18 @@ export function AtencionForm({ atencion, onClose, onSaved }: Props) {
             </div>
           )}
 
+          {editable && atencion.limiteEdicion && (
+            <div className="mb-4 bg-slate-50 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-sm">
+              Puedes editar este registro hasta el <strong>{fechaLegible(atencion.limiteEdicion)}</strong>.
+              {atencion.estado === 'DEVUELTA' && ' La devolución del docente te reabrió el plazo.'}
+            </div>
+          )}
+
           {!editable && (
             <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
-              La ventana para editar este registro (fecha de la cita + {GRACIA_DIAS} días) ya cerró.
+              {atencion.limiteEdicion
+                ? <>La ventana para editar este registro cerró el <strong>{fechaLegible(atencion.limiteEdicion)}</strong>. </>
+                : <>La ventana para editar este registro ya cerró. </>}
               Ya no puedes modificar los datos; puedes <strong>enviarlo a revisión</strong> para finalizarlo,
               o agregar una <strong>adenda</strong> una vez finalizado.
             </div>

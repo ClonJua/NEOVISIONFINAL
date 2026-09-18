@@ -98,6 +98,14 @@ public class Atencion {
     @Column(name = "fecha_finalizacion")
     private LocalDateTime fechaFinalizacion;
 
+    /**
+     * Momento de la última devolución del docente. Reabre la ventana de edición
+     * del estudiante: el tiempo que la atención pasó esperando revisión no debe
+     * consumir su plazo, porque la demora no es suya.
+     */
+    @Column(name = "fecha_devolucion")
+    private LocalDateTime fechaDevolucion;
+
     @Column(name = "motivo_devolucion", columnDefinition = "TEXT")
     private String motivoDevolucion;
 

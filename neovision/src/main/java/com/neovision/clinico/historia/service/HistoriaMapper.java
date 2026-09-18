@@ -66,6 +66,10 @@ public class HistoriaMapper {
         r.setFechaEnvioRevision(a.getFechaEnvioRevision());
         r.setFechaFinalizacion(a.getFechaFinalizacion());
         r.setMotivoDevolucion(a.getMotivoDevolucion());
+        // Para que el estudiante vea hasta cuándo puede corregir, sin que el cliente
+        // tenga que reimplementar (y desincronizar) la regla de la ventana.
+        r.setLimiteEdicion(VentanaEdicion.limite(a));
+        r.setEditablePorEstudiante(VentanaEdicion.editablePorEstudiante(a));
 
         r.setIdEstudiante(a.getEstudiante() != null ? a.getEstudiante().getIdEstudiante() : null);
         r.setNombreEstudiante(nombreEstudiante(a));

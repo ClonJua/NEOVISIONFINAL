@@ -52,13 +52,6 @@ import java.util.List;
 @Service
 public class AtencionService {
 
-    /**
-     * Días de gracia tras la fecha de la cita durante los cuales el estudiante aún
-     * puede editar el borrador (principio de oportunidad, Resolución 1995/1999).
-     * Pasado el plazo, el registro solo puede finalizarse o corregirse por adenda.
-     */
-    private static final int VENTANA_GRACIA_DIAS = 2;
-
     private final AtencionRepository atencionRepository;
     private final HistoriaClinicaRepository historiaRepository;
     private final CitaRepository citaRepository;
@@ -126,6 +119,24 @@ public class AtencionService {
         }
     }
 
+    /**
+     * Autoriza agregar una adenda: el/los estudiante(s) de la cita o el docente
+     * supervisor. A propósito NO exige la ventana horaria de la cita (a
+     * diferencia de {@link HistoriaAccessGuard#requireLecturaAtencion}): una
+     * adenda es justamente una corrección que se agrega después, muchas veces
+     * días después de finalizada la atención.
+     */
+    private void requireAutorizadoParaAdenda(Atencion a, Authentication auth) {
+        String correo = auth.getName();
+        boolean esEstudianteDeLaAtencion = (a.getEstudiante() != null && a.getEstudiante().getCorreo().equalsIgnoreCase(correo))
+                || CitaEstudiantes.incluyeCorreo(a.getCita(), correo);
+        boolean esDocenteSupervisor = a.getDocenteSupervisor() != null
+                && a.getDocenteSupervisor().getCorreo().equalsIgnoreCase(correo);
+        if (!esEstudianteDeLaAtencion && !esDocenteSupervisor) {
+            throw new AccesoNoAutorizadoHistoriaException("No puedes agregar una adenda a una atención que no es tuya");
+        }
+    }
+
     private void requireEditable(Atencion a) {
         if (a.getEstado() == EstadoAtencion.FINALIZADA) {
             throw new HistoriaInmutableException("La atención está finalizada y no puede modificarse. Usa una adenda para correcciones.");
@@ -134,17 +145,13 @@ public class AtencionService {
             throw new AccesoNoAutorizadoHistoriaException("La atención está en revisión del docente y no es editable en este momento");
         }
         // Ventana de oportunidad: no se editan datos clínicos de una visita ya pasada.
-        java.time.LocalDate fechaCita = fechaCita(a);
-        if (fechaCita != null && java.time.LocalDate.now().isAfter(fechaCita.plusDays(VENTANA_GRACIA_DIAS))) {
+        java.time.LocalDate limite = VentanaEdicion.limite(a);
+        if (limite != null && java.time.LocalDate.now().isAfter(limite)) {
             throw new HistoriaInmutableException(
-                    "La ventana para editar este registro (fecha de la cita + " + VENTANA_GRACIA_DIAS
-                    + " días) ya cerró. Finalízalo o agrega una adenda.");
+                    "La ventana para editar este registro cerró el " + limite + ". "
+                    + "Envíalo a revisión para que el docente lo finalice; "
+                    + "cualquier corrección posterior se registra como adenda.");
         }
-    }
-
-    private java.time.LocalDate fechaCita(Atencion a) {
-        return a.getCita() != null && a.getCita().getSesion() != null
-                ? a.getCita().getSesion().getFecha() : null;
     }
 
     private Atencion buscar(Integer id) {
@@ -297,7 +304,7 @@ public class AtencionService {
             throw new EstadoInvalidoException("La atención ya fue enviada a revisión");
         }
         // Nota: a propósito NO se llama requireEditable() aquí, así que la ventana de
-        // gracia (VENTANA_GRACIA_DIAS) no bloquea el envío a revisión, solo la edición
+        // gracia (VentanaEdicion) no bloquea el envío a revisión, solo la edición
         // de campos clínicos. Si se cerró la ventana, el estudiante ya no puede seguir
         // editando el borrador, pero sí debe poder enviar lo que tenga para que el
         // docente lo revise (devuelva o finalice); de lo contrario el registro quedaría
@@ -328,6 +335,9 @@ public class AtencionService {
         }
         a.setEstado(EstadoAtencion.DEVUELTA);
         a.setMotivoDevolucion(req.getMotivo());
+        // Reabre la ventana de edición del estudiante: si el docente tardó en
+        // revisarla, no puede recibir una devolución que ya no pueda corregir.
+        a.setFechaDevolucion(LocalDateTime.now());
         atencionRepository.save(a);
 
         auditoriaService.registrar(auth.getName(), HistoriaClinicaService.rol(auth),
@@ -343,6 +353,14 @@ public class AtencionService {
         requireSupervisor(a, auth);
         if (a.getEstado() == EstadoAtencion.FINALIZADA) {
             throw new HistoriaInmutableException("La atención ya está finalizada");
+        }
+        if (a.getEstado() == EstadoAtencion.DEVUELTA) {
+            // El docente no sabía cuál era su salida aquí: sellar el registro exige
+            // que el estudiante lo reenvíe firmado, aunque no le cambie nada.
+            throw new EstadoInvalidoException(
+                    "Esta atención está devuelta al estudiante y aún no la ha reenviado. "
+                    + "Para finalizarla debe reenviarla a revisión: si ya no puede corregir lo que le pediste, "
+                    + "pídele que la reenvíe tal como está y regístra tú la corrección como adenda una vez finalizada.");
         }
         if (a.getEstado() != EstadoAtencion.PENDIENTE_REVISION) {
             throw new EstadoInvalidoException("Solo se pueden finalizar atenciones que están en revisión");
@@ -502,6 +520,7 @@ public class AtencionService {
     @Transactional
     public AdendaResponse agregarAdenda(Integer idAtencion, AdendaRequest req, Authentication auth) {
         Atencion a = buscar(idAtencion);
+        requireAutorizadoParaAdenda(a, auth);
         if (a.getEstado() != EstadoAtencion.FINALIZADA) {
             throw new RuntimeException("Solo se pueden agregar adendas a atenciones finalizadas");
         }
