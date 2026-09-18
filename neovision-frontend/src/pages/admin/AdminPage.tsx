@@ -12,6 +12,7 @@ import CitasTab from './CitasTab';
 import ReportesTab from './ReportesTab';
 import HistoriasClinicasTab from './HistoriasClinicasTab';
 import SolicitudesTab from './SolicitudesTab';
+import { GuiaPestanas } from './GuiaPestanas';
 import {
   Badge, LogOutIcon, HomeIcon, CalendarIcon, UsersIcon, UserIcon, MapPinIcon, ClockIcon, ClipboardListIcon, BarChartIcon, HistoryIcon, InfoIcon, AyudaModal,
 } from '../../components/ui';
@@ -25,6 +26,8 @@ interface TabDef {
   label: string;
   icon: ReactNode;
   group: Group;
+  /** Una línea que dice qué contiene la pestaña, bajo el título. */
+  descripcion: string;
 }
 
 /** Grupos del menú, en orden de uso (lo más frecuente arriba). */
@@ -37,19 +40,29 @@ const GROUPS: { key: Group; label: string }[] = [
 
 const TABS: TabDef[] = [
   // Agendamiento — lo que más se usa: crear sesiones y citas, primero.
-  { key: 'citas',       label: 'Citas',       icon: <ClipboardListIcon size={18} />, group: 'agenda' },
-  { key: 'sesiones',    label: 'Sesiones',    icon: <ClockIcon size={18} />,          group: 'agenda' },
-  { key: 'calendario',  label: 'Calendario',  icon: <CalendarIcon size={18} />,       group: 'agenda' },
-  { key: 'espacios',    label: 'Espacios',    icon: <MapPinIcon size={18} />,         group: 'agenda' },
+  { key: 'citas',       label: 'Citas',       icon: <ClipboardListIcon size={18} />, group: 'agenda',
+    descripcion: 'Los bloques que viven dentro de tus sesiones — aquí asignas y reprogramas pacientes' },
+  { key: 'sesiones',    label: 'Sesiones',    icon: <ClockIcon size={18} />, group: 'agenda',
+    descripcion: 'Las jornadas de práctica; al crearlas se generan solas sus citas' },
+  { key: 'calendario',  label: 'Calendario',  icon: <CalendarIcon size={18} />, group: 'agenda',
+    descripcion: 'Las mismas citas vistas sobre el mes, para revisar la ocupación' },
+  { key: 'espacios',    label: 'Espacios',    icon: <MapPinIcon size={18} />, group: 'agenda',
+    descripcion: 'Los lugares físicos y los salones donde ocurre la práctica' },
   // Historias clínicas
-  { key: 'historias',   label: 'Historias Clínicas', icon: <HistoryIcon size={18} />, group: 'historias' },
-  { key: 'solicitudes', label: 'Solicitudes HC',     icon: <InfoIcon size={18} />,    group: 'historias' },
+  { key: 'historias',   label: 'Historias Clínicas', icon: <HistoryIcon size={18} />, group: 'historias',
+    descripcion: 'Archivo clínico de todos los pacientes, con su auditoría de accesos (solo consulta)' },
+  { key: 'solicitudes', label: 'Solicitudes HC',     icon: <InfoIcon size={18} />, group: 'historias',
+    descripcion: 'Pacientes que pidieron copia de su historia clínica' },
   // Personas — manejo de docentes, estudiantes y pacientes.
-  { key: 'docentes',    label: 'Docentes',    icon: <UserIcon size={18} />,    group: 'personas' },
-  { key: 'estudiantes', label: 'Estudiantes', icon: <UsersIcon size={18} />,   group: 'personas' },
-  { key: 'pacientes',   label: 'Pacientes',   icon: <UsersIcon size={18} />,   group: 'personas' },
+  { key: 'docentes',    label: 'Docentes',    icon: <UserIcon size={18} />, group: 'personas',
+    descripcion: 'Quienes supervisan las sesiones y firman las historias clínicas' },
+  { key: 'estudiantes', label: 'Estudiantes', icon: <UsersIcon size={18} />, group: 'personas',
+    descripcion: 'Quienes atienden a los pacientes, organizados por semestre' },
+  { key: 'pacientes',   label: 'Pacientes',   icon: <UsersIcon size={18} />, group: 'personas',
+    descripcion: 'Las personas que se atienden en la clínica' },
   // Reportes
-  { key: 'reportes',    label: 'Reportes',    icon: <BarChartIcon size={18} />, group: 'reportes' },
+  { key: 'reportes',    label: 'Reportes',    icon: <BarChartIcon size={18} />, group: 'reportes',
+    descripcion: 'Indicadores de ocupación y avance de los estudiantes frente a su meta' },
 ];
 
 export default function AdminPage() {
@@ -121,8 +134,8 @@ export default function AdminPage() {
             <button
               onClick={handleLogout}
               className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"
-              title="Cerrar sesion"
-              aria-label="Cerrar sesion"
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
             >
               <LogOutIcon size={16} />
             </button>
@@ -176,11 +189,12 @@ export default function AdminPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-800">{activeTabDef.label}</h1>
-              <p className="text-sm text-slate-500">Gestiona {activeTabDef.label.toLowerCase()} del sistema</p>
+              <p className="text-sm text-slate-500">{activeTabDef.descripcion}</p>
             </div>
           </div>
 
           <div className="animate-[fadeIn_200ms_ease-out]">
+            <GuiaPestanas actual={tab} />
             {tab === 'calendario' && <CalendarTab />}
             {tab === 'citas' && <CitasTab />}
             {tab === 'espacios' && <EspaciosTab />}

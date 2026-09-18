@@ -5,6 +5,7 @@ import { espacioService, type EspacioResponse } from '../../api/espacioService';
 import { adminService, type DocenteResponse, type EstudianteResponse } from '../../api/adminService';
 import DateScroller from '../../components/DateScroller';
 import { useToast } from '../../components/ui/Toast';
+import { HelpTip } from '../../components/ui/HelpTip';
 
 const C = {
   primary:   '#1F7A63',
@@ -67,6 +68,11 @@ export default function SesionesTab() {
   const [semestreSelRec, setSemestreSelRec] = useState('');
 
   const [lunes, setLunes] = useState(() => getMonday(new Date()));
+  // Vista "lista": todas las sesiones activas en una sola tabla, sin importar
+  // la semana — para encontrar una sesion perdida sin tener que navegar
+  // semana por semana (la grilla semanal solo muestra 5 dias a la vez).
+  const [vista, setVista] = useState<'semana' | 'lista'>('semana');
+  const [ordenDesc, setOrdenDesc] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [showFormRecurrente, setShowFormRecurrente] = useState(false);
@@ -119,16 +125,31 @@ export default function SesionesTab() {
 
   useEffect(() => { cargar(); }, []);
 
+  // Compartido entre la grilla semanal y la vista de lista completa. El texto
+  // de busqueda revisa salon, hora, docente, fecha y estudiantes, para poder
+  // encontrar una sesion sin saber de antemano en cual de los 3 selects filtrarla.
+  const coincideFiltros = (s: SesionResponse) => {
+    if (filtroEspacio && (s.nombreEspacio ?? 'Sin salon') !== filtroEspacio) return false;
+    if (filtroDocente && s.nombreDocente !== filtroDocente) return false;
+    if (filtroEstudiante && !s.estudiantes.some(e => e.nombre === filtroEstudiante)) return false;
+    if (!busqueda) return true;
+    const q = busqueda.toLowerCase();
+    return (s.nombreSalon ?? '').toLowerCase().includes(q)
+      || (s.horaInicio ?? '').includes(q)
+      || s.nombreDocente.toLowerCase().includes(q)
+      || s.fecha.includes(q)
+      || s.estudiantes.some(e => e.nombre.toLowerCase().includes(q));
+  };
+
   const sesionesPorFecha = (fecha: string) =>
-    sesiones.filter(s => s.fecha === fecha && s.activo).filter(s => {
-      if (filtroEspacio && (s.nombreEspacio ?? 'Sin salon') !== filtroEspacio) return false;
-      if (filtroDocente && s.nombreDocente !== filtroDocente) return false;
-      if (filtroEstudiante && !s.estudiantes.some(e => e.nombre === filtroEstudiante)) return false;
-      if (!busqueda) return true;
-      const q = busqueda.toLowerCase();
-      return (s.nombreSalon ?? '').toLowerCase().includes(q)
-        || (s.horaInicio ?? '').includes(q);
-    });
+    sesiones.filter(s => s.fecha === fecha && s.activo).filter(coincideFiltros);
+
+  const todasLasSesiones = sesiones.filter(s => s.activo).filter(coincideFiltros).sort((a, b) => {
+    const cmp = a.fecha === b.fecha
+      ? (a.horaInicio ?? '').localeCompare(b.horaInicio ?? '')
+      : a.fecha.localeCompare(b.fecha);
+    return ordenDesc ? -cmp : cmp;
+  });
 
   const espaciosUnicos = [...new Set(sesiones.filter(s => s.activo).map(s => s.nombreEspacio ?? 'Sin salon'))].sort();
   const docentesUnicos = [...new Set(sesiones.filter(s => s.activo).map(s => s.nombreDocente))].sort();
@@ -253,8 +274,20 @@ export default function SesionesTab() {
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold" style={{ color: C.dark }}>Sesiones de Practica</h3>
+        <h3 className="text-lg font-semibold" style={{ color: C.dark }}>Sesiones de Práctica</h3>
         <div className="flex gap-2">
+          <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: C.border }}>
+            <button type="button" onClick={() => setVista('semana')}
+              className="text-sm font-medium px-3 py-2 transition"
+              style={vista === 'semana' ? { background: C.primary, color: '#fff' } : { background: '#fff', color: C.dark }}>
+              Semana
+            </button>
+            <button type="button" onClick={() => setVista('lista')}
+              className="text-sm font-medium px-3 py-2 transition"
+              style={vista === 'lista' ? { background: C.primary, color: '#fff' } : { background: '#fff', color: C.dark }}>
+              Todas ({sesiones.filter(s => s.activo).length})
+            </button>
+          </div>
           <button type="button" onClick={() => setShowFormRecurrente(!showFormRecurrente)}
             className="text-white text-sm font-medium px-4 py-2 rounded-lg transition"
             style={{ background: showFormRecurrente ? C.dark : C.primary }}
@@ -322,7 +355,10 @@ export default function SesionesTab() {
               <DateScroller value={form.fecha} onChange={fecha => setForm({...form, fecha})} minDate={formatDate(new Date())} maxDate={MAX_FECHA_SESION} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Cupos</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Cupos
+                <HelpTip text="Pacientes que admite la jornada, no estudiantes. Cada cupo es un bloque: un paciente atendido por una pareja. Con N estudiantes se generan N/2 bloques como máximo; sube los cupos solo si habrá varias rondas." />
+              </label>
               <input type="number" min={1} value={form.cuposTotales} onChange={e => setForm({...form, cuposTotales: parseInt(e.target.value)})}
                 className={inputCls} />
             </div>
@@ -400,7 +436,7 @@ export default function SesionesTab() {
           <h4 className="font-semibold" style={{ color: C.dark }}>Crear Sesiones Recurrentes</h4>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Dia de la Semana</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Día de la Semana</label>
               <select value={formRecurrente.diaSemana} onChange={e => setFormRecurrente({...formRecurrente, diaSemana: e.target.value as 'MONDAY'})}
                 className={inputCls}>
                 <option value="MONDAY">Lunes</option>
@@ -439,7 +475,10 @@ export default function SesionesTab() {
                 className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Cupos por Sesion</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Cupos por Sesion
+                <HelpTip text="Pacientes que admite cada jornada, no estudiantes. Cada cupo es un bloque: un paciente atendido por una pareja." />
+              </label>
               <input type="number" min={1} value={formRecurrente.cuposTotales} onChange={e => setFormRecurrente({...formRecurrente, cuposTotales: parseInt(e.target.value)})}
                 className={inputCls} />
             </div>
@@ -512,6 +551,7 @@ export default function SesionesTab() {
       )}
 
       {/* Navegacion semanal */}
+      {vista === 'semana' && (
       <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 mb-4"
         style={{ border: `1px solid ${C.border}` }}>
         <button type="button" onClick={() => setLunes(addDays(lunes, -7))}
@@ -536,6 +576,7 @@ export default function SesionesTab() {
           Siguiente &rarr;
         </button>
       </div>
+      )}
 
       {/* Filtros */}
       <div className="flex gap-3 mb-4 flex-wrap">
@@ -552,7 +593,7 @@ export default function SesionesTab() {
           {estudiantesUnicos.map(e => <option key={e} value={e}>{e}</option>)}
         </select>
         <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-          placeholder="Buscar salon u hora..."
+          placeholder="Buscar por salon, hora, docente, fecha o estudiante..."
           className="flex-1 min-w-[200px] px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-[#1F7A63]" />
         {(filtroEspacio || filtroDocente || filtroEstudiante || busqueda) && (
           <button type="button" onClick={() => { setFiltroEspacio(''); setFiltroDocente(''); setFiltroEstudiante(''); setBusqueda(''); }}
@@ -563,6 +604,7 @@ export default function SesionesTab() {
       </div>
 
       {/* Grilla semanal */}
+      {vista === 'semana' && (
       <div className="space-y-3">
         {diasSemana.map(dia => {
           const fechaStr = formatDate(dia);
@@ -662,6 +704,90 @@ export default function SesionesTab() {
           );
         })}
       </div>
+      )}
+
+      {/* Vista de lista: todas las sesiones activas en una sola tabla, para
+          encontrar una sesion perdida sin navegar semana por semana. */}
+      {vista === 'lista' && (
+        <div className="bg-white rounded-lg overflow-x-auto" style={{ border: `1px solid ${C.border}` }}>
+          <table className="w-full text-sm">
+            <thead className="border-b" style={{ background: C.bg, borderColor: C.border }}>
+              <tr>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: C.dark }}>
+                  <button type="button" onClick={() => setOrdenDesc(!ordenDesc)} className="flex items-center gap-1 hover:underline">
+                    Fecha {ordenDesc ? '↓' : '↑'}
+                  </button>
+                </th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: C.dark }}>Horario</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: C.dark }}>Docente</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: C.dark }}>Espacio / Salon</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: C.dark }}>Cupos</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: C.dark }}>Estudiantes</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: C.dark }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={7} className="px-4 py-1 text-xs text-slate-400">
+                  {todasLasSesiones.length} de {sesiones.filter(s => s.activo).length} sesiones activas
+                </td>
+              </tr>
+              {todasLasSesiones.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-8 text-slate-400">No se encontraron sesiones con esos filtros</td></tr>
+              ) : todasLasSesiones.map(s => {
+                const hoy = formatDate(new Date());
+                const esHoy = s.fecha === hoy;
+                const esPasada = s.fecha < hoy;
+                return (
+                  <tr key={s.idSesion} className="border-b border-slate-100">
+                    <td className="px-4 py-3">
+                      <span className={esPasada ? 'text-slate-400' : 'font-medium'} style={!esPasada ? { color: C.dark } : undefined}>
+                        {s.fecha}
+                      </span>
+                      {esHoy && (
+                        <span className="ml-2 text-[10px] text-white px-1.5 py-0.5 rounded-full" style={{ background: C.primary }}>Hoy</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {s.horaInicio || s.horaFin ? `${s.horaInicio ?? '?'} – ${s.horaFin ?? '?'}` : '-'}
+                    </td>
+                    <td className="px-4 py-3">{s.nombreDocente}</td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {s.nombreEspacio ?? 'Sin espacio'}{s.nombreSalon ? ` · ${s.nombreSalon}` : ''}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">{s.cuposDisponibles}/{s.cuposTotales}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1 max-w-xs">
+                        {s.estudiantes.map(e => (
+                          <span key={e.idEstudiante} className="text-[10px] px-2 py-0.5 rounded-full border"
+                            style={{ background: C.chip, color: C.chipText, borderColor: C.border }}>
+                            {e.nombre}
+                          </span>
+                        ))}
+                        {s.estudiantes.length === 0 && <span className="text-xs text-slate-400">Sin estudiantes</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => { setVista('semana'); handleEditarSesion(s); }}
+                          className="text-xs font-medium" style={{ color: C.primary }}>Editar</button>
+                        <button type="button"
+                          onClick={async () => {
+                            if (confirm('¿Eliminar permanentemente esta sesión? Esta acción no se puede deshacer.')) {
+                              try { await sesionService.eliminar(s.idSesion); await cargar(); }
+                              catch (err: unknown) { const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al eliminar'; setError(msg); toast.error(msg); }
+                            }
+                          }}
+                          className="text-xs text-red-400 hover:text-red-600">Eliminar</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

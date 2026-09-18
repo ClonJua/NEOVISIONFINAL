@@ -14,6 +14,7 @@ import AgendadasTab from './AgendadasTab';
 import HistorialTab from './HistorialTab';
 import AtencionesTab from './AtencionesTab';
 import PerfilTab from './PerfilTab';
+import { GuiaPestanas } from './GuiaPestanas';
 import {
   Badge, LogOutIcon, HomeIcon, CalendarIcon, ClipboardListIcon, HistoryIcon, ClockIcon, UserIcon, InfoIcon, AyudaModal,
   useToast,
@@ -25,6 +26,8 @@ interface TabDef {
   key: Tab;
   label: string;
   icon: ReactNode;
+  /** Una línea que dice qué contiene la pestaña, bajo el título. */
+  descripcion: string;
 }
 
 export default function EstudiantePage() {
@@ -79,13 +82,14 @@ export default function EstudiantePage() {
   const atencionesDevueltas = atenciones.filter((a) => a.estado === 'DEVUELTA').length;
 
   const TABS: TabDef[] = [
-    { key: 'resumen', label: 'Resumen', icon: <HomeIcon size={18} /> },
-    { key: 'disponibles', label: 'Disponibles', icon: <CalendarIcon size={18} /> },
-    { key: 'agendadas', label: 'Agendadas', icon: <ClipboardListIcon size={18} /> },
-    { key: 'historial', label: 'Historial', icon: <HistoryIcon size={18} /> },
+    { key: 'resumen', label: 'Resumen', icon: <HomeIcon size={18} />, descripcion: 'Tu progreso del semestre y lo que tienes pendiente' },
+    { key: 'disponibles', label: 'Disponibles', icon: <CalendarIcon size={18} />, descripcion: 'Tus bloques sin paciente asignado — asígnales uno' },
+    { key: 'agendadas', label: 'Agendadas', icon: <ClipboardListIcon size={18} />, descripcion: 'Bloques con paciente que aún no atiendes — aquí abres la historia clínica' },
+    { key: 'historial', label: 'Historial', icon: <HistoryIcon size={18} />, descripcion: 'Citas que ya terminaron: completadas, canceladas o vencidas' },
     {
       key: 'atenciones',
       label: 'Mis atenciones',
+      descripcion: 'Las historias clínicas que diligenciaste y en qué punto de revisión va cada una',
       icon: (
         <span className="relative inline-flex">
           <ClockIcon size={18} />
@@ -97,7 +101,7 @@ export default function EstudiantePage() {
         </span>
       ),
     },
-    { key: 'perfil', label: 'Mi perfil', icon: <UserIcon size={18} /> },
+    { key: 'perfil', label: 'Mi perfil', icon: <UserIcon size={18} />, descripcion: 'Tus datos y tu firma para las historias clínicas' },
   ];
 
   const activeTabDef = TABS.find((t) => t.key === tab)!;
@@ -156,8 +160,8 @@ export default function EstudiantePage() {
             <button
               onClick={handleLogout}
               className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"
-              title="Cerrar sesion"
-              aria-label="Cerrar sesion"
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
             >
               <LogOutIcon size={16} />
             </button>
@@ -214,11 +218,14 @@ export default function EstudiantePage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-800">{activeTabDef.label}</h1>
-              <p className="text-sm text-slate-500">Bloques de citas, pacientes e historias clínicas</p>
+              <p className="text-sm text-slate-500">{activeTabDef.descripcion}</p>
             </div>
           </div>
 
           <div className="animate-[fadeIn_200ms_ease-out]">
+            {(tab === 'disponibles' || tab === 'agendadas' || tab === 'historial' || tab === 'atenciones') && (
+              <GuiaPestanas actual={tab} />
+            )}
             {tab === 'resumen' && (
               <ResumenTab
                 bloques={bloques}

@@ -1,5 +1,6 @@
 import type { AtencionResumenResponse } from '../../api/historiaClinicaService';
 import { AtencionesTimeline } from '../../components/historia/AtencionesTimeline';
+import { EstadosAtencionInfo } from '../../components/historia/EstadosAtencionInfo';
 
 interface Props {
   atenciones: AtencionResumenResponse[];
@@ -17,6 +18,7 @@ export default function AtencionesTab({ atenciones, atencionesDevueltas, onOpen 
           Ábrela desde la pestaña "Agendadas" para corregirla y reenviarla.
         </div>
       )}
+      <EstadosAtencionInfo rol="estudiante" />
       <AtencionesTimeline
         atenciones={atenciones}
         onOpen={onOpen}

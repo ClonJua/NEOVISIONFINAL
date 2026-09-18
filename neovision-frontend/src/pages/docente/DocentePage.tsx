@@ -12,6 +12,7 @@ import SesionesTab from './SesionesTab';
 import CitasTab from './CitasTab';
 import PacientesTab from './PacientesTab';
 import PerfilTab from './PerfilTab';
+import { GuiaPestanas } from './GuiaPestanas';
 import {
   Badge, LogOutIcon, HomeIcon, ClockIcon, ClipboardListIcon, UsersIcon, UserIcon, CheckCircleIcon, InfoIcon, AyudaModal,
   useToast,
@@ -22,6 +23,8 @@ type Tab = 'resumen' | 'bandeja' | 'sesiones' | 'citas' | 'pacientes' | 'perfil'
 interface TabDef {
   key: Tab;
   label: string;
+  /** Una línea que dice qué contiene la pestaña, bajo el título. */
+  descripcion: string;
   icon: ReactNode;
 }
 
@@ -65,10 +68,11 @@ export default function DocentePage() {
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, []);
 
   const TABS: TabDef[] = [
-    { key: 'resumen', label: 'Resumen', icon: <HomeIcon size={18} /> },
+    { key: 'resumen', label: 'Resumen', icon: <HomeIcon size={18} />, descripcion: 'Lo que tienes pendiente y el panorama de tus sesiones' },
     {
       key: 'bandeja',
       label: 'Bandeja de revisión',
+      descripcion: 'Atenciones que tus estudiantes te enviaron y esperan tu firma o devolución',
       icon: (
         <span className="relative inline-flex">
           <CheckCircleIcon size={18} />
@@ -80,10 +84,10 @@ export default function DocentePage() {
         </span>
       ),
     },
-    { key: 'sesiones', label: 'Mis sesiones', icon: <ClockIcon size={18} /> },
-    { key: 'citas', label: 'Citas', icon: <ClipboardListIcon size={18} /> },
-    { key: 'pacientes', label: 'Historias de pacientes', icon: <UsersIcon size={18} /> },
-    { key: 'perfil', label: 'Mi perfil', icon: <UserIcon size={18} /> },
+    { key: 'sesiones', label: 'Mis sesiones', icon: <ClockIcon size={18} />, descripcion: 'Las jornadas de práctica que supervisas: fecha, salón y estudiantes' },
+    { key: 'citas', label: 'Citas', icon: <ClipboardListIcon size={18} />, descripcion: 'Los bloques de todas tus sesiones — aquí confirmas la asistencia del paciente' },
+    { key: 'pacientes', label: 'Historias de pacientes', icon: <UsersIcon size={18} />, descripcion: 'Archivo completo de los pacientes atendidos en tus sesiones (solo consulta)' },
+    { key: 'perfil', label: 'Mi perfil', icon: <UserIcon size={18} />, descripcion: 'Tus datos y tu firma para finalizar historias clínicas' },
   ];
 
   const activeTabDef = TABS.find((t) => t.key === tab)!;
@@ -142,8 +146,8 @@ export default function DocentePage() {
             <button
               onClick={handleLogout}
               className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"
-              title="Cerrar sesion"
-              aria-label="Cerrar sesion"
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
             >
               <LogOutIcon size={16} />
             </button>
@@ -200,11 +204,14 @@ export default function DocentePage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-800">{activeTabDef.label}</h1>
-              <p className="text-sm text-slate-500">Supervisión de citas e historias clínicas de tus estudiantes</p>
+              <p className="text-sm text-slate-500">{activeTabDef.descripcion}</p>
             </div>
           </div>
 
           <div className="animate-[fadeIn_200ms_ease-out]">
+            {(tab === 'bandeja' || tab === 'sesiones' || tab === 'citas' || tab === 'pacientes') && (
+              <GuiaPestanas actual={tab} />
+            )}
             {tab === 'resumen' && (
               <ResumenTab
                 sesiones={sesiones}

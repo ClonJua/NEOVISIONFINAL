@@ -9,3 +9,4 @@ export * from './Skeleton';
 export * from './Input';
 export * from './HelpTip';
 export * from './AyudaModal';
+export * from './GuiaPestanas';

@@ -4,6 +4,7 @@ import { Button, Modal, useToast } from '../../components/ui';
 import { AtencionDetailModal } from './AtencionDetailModal';
 import { AtencionesTimeline } from './AtencionesTimeline';
 import { DiagramaCanvas } from './DiagramaCanvas';
+import { EstadosAtencionInfo } from './EstadosAtencionInfo';
 
 /** Bandeja de revisión del docente: atenciones pendientes → revisar, devolver o firmar. */
 export function BandejaRevision() {
@@ -74,6 +75,8 @@ export function BandejaRevision() {
         )}
       </div>
 
+      <EstadosAtencionInfo rol="docente" />
+
       {cargando ? (
         <p className="text-slate-400">Cargando…</p>
       ) : (
@@ -102,7 +105,7 @@ export function BandejaRevision() {
         open={accion === 'devolver'}
         onClose={() => setAccion(null)}
         title="Devolver atención"
-        description="El estudiante podrá corregir y reenviar."
+        description="El estudiante podrá corregir y reenviar. La devolución le reabre el plazo de edición por 2 días, así que puedes devolver aunque la cita haya sido hace tiempo."
         footer={
           <>
             <Button variant="secondary" onClick={() => setAccion(null)}>Cancelar</Button>
@@ -120,7 +123,7 @@ export function BandejaRevision() {
         open={accion === 'finalizar'}
         onClose={() => setAccion(null)}
         title="Finalizar y firmar"
-        description="La atención quedará bloqueada e inmutable (Art. 18) con sello de integridad."
+        description="Esto no se puede deshacer: la atención queda sellada e inmutable (Art. 18). Si después hay que corregir algo, se registra como adenda — el original nunca se modifica."
         size="lg"
         footer={
           <>
@@ -130,7 +133,8 @@ export function BandejaRevision() {
         }
       >
         <p className="text-sm text-slate-600 mb-3">
-          Se aplicará tu <strong>firma registrada</strong> (perfil). Captura la firma del paciente:
+          Se aplicará tu <strong>firma registrada</strong> en tu perfil (Mi perfil → Firma y sello).
+          Sin ella no se puede finalizar. Captura ahora la firma del paciente:
         </p>
         <div className="max-w-sm">
           <DiagramaCanvas label="Firma del paciente" value={firmaPaciente} onChange={setFirmaPaciente} />
