@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Diagrama Entidad-Relación · NeoVisión</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+  }
+  header {
+    padding: 24px 32px 12px;
+    border-bottom: 1px solid #ccc;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  header p { margin: 6px 0 0; color: #555; font-size: 13px; }
+  .meta-row { margin-top: 8px; font-size: 12px; color: #555; }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 32px;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #f4f4f4;
+    color: #1a1a1a;
+    border: 1px solid #bbb;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { background: #e8e8e8; }
+
+  .diagram-wrap {
+    margin: 0 32px 40px;
+    border: 1px solid #ccc;
+    padding: 20px;
+    overflow: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+  .mermaid svg { max-width: 100% !important; height: auto !important; width: 100% !important; }
+
+  .legend {
+    margin: 0 32px 16px;
+    font-size: 12px;
+    color: #555;
+  }
+
+  footer {
+    text-align: center;
+    color: #888;
+    font-size: 11px;
+    padding-bottom: 24px;
+  }
+
+  @media print {
+    header, .toolbar, footer, .legend { display: none !important; }
+    .diagram-wrap { margin: 0 !important; border: none !important; padding: 0 !important; }
+    @page { size: landscape; margin: 1cm; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Diagrama Entidad-Relación · NeoVisión</h1>
+  <p>Modelo relacional generado desde las entidades JPA del backend (identidad y acceso, programación de citas, historia clínica electrónica).</p>
+  <div class="meta-row">Actualizado 2026-09-01 · 19 tablas · 23 relaciones · PostgreSQL</div>
+</header>
+
+<div class="toolbar">
+  <button onclick="downloadSVG()">Descargar SVG</button>
+  <button onclick="downloadPNG()">Descargar PNG</button>
+  <button onclick="window.print()">Imprimir / PDF</button>
+</div>
+
+<div class="legend">PK llave primaria · FK llave foránea · UK único · línea punteada = referencia validada en código, sin FK real · "embedded" = columnas incrustadas en la misma tabla</div>
+
+<div class="diagram-wrap">
+<pre class="mermaid">
+erDiagram
+    ROL {
+        int id_rol PK
+        string nombre_rol UK
+    }
+    USUARIO {
+        int id_usuario PK
+        string correo UK
+        string contrasena
+        boolean estado
+        string expo_push_token
+        string firma
+        int id_rol FK
+    }
+    ESTUDIANTE {
+        int id_estudiante PK
+        string nombre
+        string apellido
+        string cedula UK
+        int semestre
+        string telefono
+        string correo UK
+        int id_usuario FK
+    }
+    DOCENTE {
+        int id_docente PK
+        string nombre
+        string apellido
+        string cedula UK
+        string telefono
+        string correo UK
+        int id_usuario FK
+    }
+    PACIENTE {
+        int id_paciente PK
+        string nombre
+        string apellido
+        string tipo_documento
+        string numero_documento UK
+        date fecha_nacimiento
+        string telefono
+        string correo UK
+        int id_usuario FK
+        boolean autoriza_tratamiento_datos
+        datetime fecha_autorizacion_datos
+        string representante_nombre
+        string representante_documento
+        string representante_parentesco
+    }
+    ESPECIALIDAD {
+        int id_especialidad PK
+        string nombre UK
+        string observacion_recordatorio
+        boolean requiere_subtipo
+        boolean es_default
+        boolean activo
+    }
+    ESPACIO {
+        int id_espacio PK
+        string nombre
+        string descripcion
+        boolean activo
+    }
+    SALON {
+        int id_salon PK
+        string nombre
+        boolean activo
+        int id_espacio FK
+    }
+    SESION_PRACTICA {
+        int id_sesion PK
+        int id_salon FK
+        int id_docente FK
+        date fecha
+        time hora_inicio
+        time hora_fin
+        int cupos_totales
+        boolean activo
+    }
+    CITA {
+        int id_cita PK
+        int id_sesion FK
+        int id_estudiante FK
+        int id_paciente FK
+        string estado
+        string observaciones
+        datetime fecha_reserva
+        boolean recordatorio_24h_enviado
+        boolean recordatorio_1h_enviado
+        int id_especialidad FK
+        string subtipo_control
+        bigint version
+    }
+    HISTORIA_CLINICA {
+        int id_historia PK
+        int id_paciente FK
+        string numero_historia UK
+        datetime fecha_apertura
+        string abierta_por_correo
+        string estado
+    }
+    ATENCION {
+        int id_atencion PK
+        int id_historia FK
+        int id_cita FK
+        int id_estudiante FK
+        int id_docente_supervisor FK
+        string estado
+        datetime fecha_atencion
+        datetime fecha_envio_revision
+        datetime fecha_finalizacion
+        text motivo_devolucion
+        text motivo_consulta
+        text firma_estudiante
+        text firma_docente
+        text firma_paciente
+        string hash_integridad
+        datetime created_at
+        datetime updated_at
+        bigint version
+        embedded datos_generales
+        embedded anamnesis
+        embedded signos_vitales
+        embedded lensometria
+        embedded agudeza_visual
+        embedded queratometria
+        embedded refraccion
+        embedded pruebas_complementarias
+        embedded formula_final
+        embedded examen_externo
+        embedded motilidad
+        embedded fondo_ojo
+        embedded conducta
+    }
+    DIAGNOSTICO {
+        int id_diagnostico PK
+        int id_atencion FK
+        string codigo_cie10
+        text descripcion
+        int orden
+    }
+    PROCEDIMIENTO {
+        int id_procedimiento PK
+        int id_atencion FK
+        string codigo_cups
+        text descripcion
+        int orden
+    }
+    CIE10 {
+        string codigo PK
+        string descripcion
+        string categoria
+        boolean activo
+    }
+    CUPS {
+        string codigo PK
+        string descripcion
+        string categoria
+        boolean activo
+    }
+    ADENDA {
+        int id_adenda PK
+        int id_atencion FK
+        text texto
+        string autor_correo
+        string autor_rol
+        datetime fecha
+    }
+    SOLICITUD_HISTORIA {
+        int id_solicitud PK
+        int id_paciente FK
+        datetime fecha_solicitud
+        string estado
+        text motivo
+        text motivo_rechazo
+        string resuelta_por_correo
+        datetime fecha_resolucion
+    }
+    AUDITORIA {
+        bigint id_auditoria PK
+        string usuario_correo
+        string rol
+        string accion
+        string entidad
+        int entidad_id
+        int id_paciente
+        datetime fecha_hora
+        text detalle
+        string ip
+        string user_agent
+        string hash_previo
+        string hash_registro
+    }
+
+    ROL ||--o{ USUARIO : tiene
+    USUARIO ||--o| ESTUDIANTE : es
+    USUARIO ||--o| DOCENTE : es
+    USUARIO ||--o| PACIENTE : es
+    DOCENTE }o--o{ ESPECIALIDAD : dicta
+    ESPACIO ||--o{ SALON : contiene
+    SALON ||--o{ SESION_PRACTICA : aloja
+    DOCENTE ||--o{ SESION_PRACTICA : dirige
+    SESION_PRACTICA }o--o{ ESTUDIANTE : asigna
+    SESION_PRACTICA ||--o{ CITA : "genera bloques"
+    ESTUDIANTE ||--o{ CITA : atiende
+    PACIENTE ||--o{ CITA : reserva
+    ESPECIALIDAD ||--o{ CITA : clasifica
+    PACIENTE ||--|| HISTORIA_CLINICA : tiene
+    HISTORIA_CLINICA ||--o{ ATENCION : agrupa
+    CITA ||--o| ATENCION : origina
+    ESTUDIANTE ||--o{ ATENCION : realiza
+    DOCENTE ||--o{ ATENCION : supervisa
+    ATENCION ||--o{ DIAGNOSTICO : registra
+    ATENCION ||--o{ PROCEDIMIENTO : registra
+    ATENCION ||--o{ ADENDA : corrige
+    PACIENTE ||--o{ SOLICITUD_HISTORIA : solicita
+    DIAGNOSTICO }o..o| CIE10 : "valida (sin FK)"
+    PROCEDIMIENTO }o..o| CUPS : "valida (sin FK)"
+    AUDITORIA }o..o| PACIENTE : "referencia (sin FK)"
+</pre>
+</div>
+
+<footer>Generado desde las entidades JPA · NeoVisión © 2026</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'neutral',
+    themeVariables: {
+      primaryColor: '#ffffff',
+      primaryTextColor: '#1a1a1a',
+      primaryBorderColor: '#888888',
+      lineColor: '#888888',
+      secondaryColor: '#f4f4f4',
+      tertiaryColor: '#ffffff',
+      fontSize: '13px',
+      fontFamily: 'Arial, Helvetica, sans-serif'
+    },
+    er: {
+      diagramPadding: 20,
+      layoutDirection: 'LR',
+      minEntityWidth: 160,
+      minEntityHeight: 80,
+      entityPadding: 15,
+      useMaxWidth: true
+    }
+  });
+
+  function getSVGElement() {
+    return document.querySelector('.mermaid svg');
+  }
+
+  // Clona el SVG y le inyecta width/height reales basados en el viewBox
+  // para que la exportación tenga tamaño correcto en lugar del default 300x150.
+  function prepareSvgForExport() {
+    const svg = getSVGElement();
+    if (!svg) return null;
+    const clone = svg.cloneNode(true);
+    const viewBox = (svg.getAttribute('viewBox') || '').split(/\s+|,/).map(Number);
+    let w, h;
+    if (viewBox.length === 4) {
+      w = viewBox[2];
+      h = viewBox[3];
+    } else {
+      const bbox = svg.getBBox();
+      w = bbox.width; h = bbox.height;
+    }
+    clone.setAttribute('width', w);
+    clone.setAttribute('height', h);
+    clone.removeAttribute('style');
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    if (!clone.getAttribute('xmlns:xlink')) clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    return { svg: clone, width: w, height: h };
+  }
+
+  function downloadSVG() {
+    const prep = prepareSvgForExport();
+    if (!prep) return alert('Diagrama aún cargando...');
+    const source = new XMLSerializer().serializeToString(prep.svg);
+    const blob = new Blob(['<?xml version="1.0" standalone="no"?>\r\n' + source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'neovision-er-diagram.svg';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadPNG() {
+    const prep = prepareSvgForExport();
+    if (!prep) return alert('Diagrama aún cargando...');
+    const source = new XMLSerializer().serializeToString(prep.svg);
+    const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = function () {
+      const scale = 2.5;
+      const canvas = document.createElement('canvas');
+      canvas.width = prep.width * scale;
+      canvas.height = prep.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function (blob) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'neovision-er-diagram.png';
+        document.body.appendChild(a); a.click(); a.remove();
+      });
+    };
+    img.onerror = function () {
+      alert('Error al renderizar el SVG a PNG. Probá con el botón SVG.');
+    };
+    img.src = url;
+  }
+</script>
+</body>
+</html>

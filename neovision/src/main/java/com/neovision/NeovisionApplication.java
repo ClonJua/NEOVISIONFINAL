@@ -1,0 +1,21 @@
+package com.neovision;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.util.TimeZone;
+
+@SpringBootApplication
+@EnableAsync
+@EnableScheduling
+public class NeovisionApplication {
+
+    public static void main(String[] args) {
+  
+        TimeZone.setDefault(TimeZone.getTimeZone("America/Bogota"));
+        SpringApplication.run(NeovisionApplication.class, args);
+    }
+
+}

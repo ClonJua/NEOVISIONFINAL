@@ -1,0 +1,45 @@
+# Claude
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend
+# Secretos locales (application.properties se versiona sin secretos y lo importa)
+neovision/local.properties
+# Bundle del frontend que se copia dentro del jar al desplegar (deploy-azure.sh)
+neovision/src/main/resources/static/
+# Backups de base de datos: pueden contener datos reales de pacientes (Ley 1581)
+*.sql
+# ...pero las migraciones Flyway son codigo fuente
+!neovision/src/main/resources/db/migration/*.sql
+neovision/target/
+neovision/.idea/
+neovision/*.iml
+neovision/*.iws
+neovision/*.ipr
+neovision/.vscode/
+neovision/.settings/
+neovision/.classpath
+neovision/.project
+neovision/.factorypath
+neovision/.springBeans
+neovision/.sts4-cache
+neovision/.apt_generated
+neovision/build/
+neovision/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+neovision-frontend/node_modules/
+neovision-frontend/dist/
+neovision-frontend/dist-ssr/
+neovision-frontend/*.local
+neovision-frontend/.vscode/
+
+# Logs
+*.log
+hs_err_*.log
+replay_*.log
+neovision-frontend/.env
+neovision/neovision-frontend/
