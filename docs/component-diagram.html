@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Diagrama de Componentes · NeoVisión</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+  }
+  header {
+    padding: 24px 32px 12px;
+    border-bottom: 1px solid #ccc;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  header p { margin: 6px 0 0; color: #555; font-size: 13px; }
+  .meta-row { margin-top: 8px; font-size: 12px; color: #555; }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 32px;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #f4f4f4;
+    color: #1a1a1a;
+    border: 1px solid #bbb;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { background: #e8e8e8; }
+
+  .diagram-wrap {
+    margin: 0 32px 40px;
+    border: 1px solid #ccc;
+    padding: 20px;
+    overflow: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+  .mermaid svg { max-width: 100% !important; height: auto !important; width: 100% !important; }
+
+  footer {
+    text-align: center;
+    color: #888;
+    font-size: 11px;
+    padding-bottom: 24px;
+  }
+
+  @media print {
+    header, .toolbar, footer { display: none !important; }
+    .diagram-wrap { margin: 0 !important; border: none !important; padding: 0 !important; }
+    @page { size: landscape; margin: 1cm; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Arquitectura Cliente – Servidor · NeoVisión</h1>
+  <p>Componentes principales del sistema: clientes, API, capas internas del backend, servicio externo de autenticación y base de datos.</p>
+  <div class="meta-row">Actualizado 2026-09-01</div>
+</header>
+
+<div class="toolbar">
+  <button onclick="downloadSVG()">Descargar SVG</button>
+  <button onclick="downloadPNG()">Descargar PNG</button>
+  <button onclick="window.print()">Imprimir / PDF</button>
+</div>
+
+<div class="diagram-wrap">
+<pre class="mermaid">
+flowchart TB
+    subgraph CLIENTE["CLIENTE"]
+        WEB["Aplicación Web (SPA)<br/>React 19 + TypeScript + Vite 6"]
+        MOVIL["Aplicación Móvil<br/>React Native + Expo + TypeScript"]
+    end
+
+    subgraph SERVIDOR["SERVIDOR"]
+        API["API REST<br/>Spring Boot 4 + Java 21"]
+        subgraph CAPAS["Capas internas"]
+            direction TB
+            CTRL["Controllers"]
+            SVC["Services"]
+            REPO["Repositories"]
+        end
+        API --> CTRL
+        CTRL --> SVC
+        SVC --> REPO
+    end
+
+    subgraph EXTERNO["SERVICIO EXTERNO"]
+        AAD["Microsoft Azure AD<br/>Microsoft Graph API"]
+    end
+
+    subgraph BD["BASE DE DATOS"]
+        PG["PostgreSQL<br/>neovision_db · 20 tablas"]
+    end
+
+    WEB -- "HTTP / REST / JSON / JWT" --> API
+    MOVIL -- "HTTP / REST / JSON / JWT" --> API
+    WEB -- "OAuth2 / OIDC login" --> AAD
+    MOVIL -- "OAuth2 / OIDC login" --> AAD
+    API -- "valida token vía Graph API" --> AAD
+    API -- "JDBC / Hibernate / SQL" --> PG
+</pre>
+</div>
+
+<footer>Generado a partir de pom.xml, package.json y las entidades JPA del backend · NeoVisión © 2026</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'neutral',
+    themeVariables: {
+      primaryColor: '#ffffff',
+      primaryTextColor: '#1a1a1a',
+      primaryBorderColor: '#888888',
+      lineColor: '#888888',
+      secondaryColor: '#f4f4f4',
+      tertiaryColor: '#ffffff',
+      fontSize: '13px',
+      fontFamily: 'Arial, Helvetica, sans-serif'
+    },
+    flowchart: {
+      useMaxWidth: true,
+      curve: 'basis'
+    }
+  });
+
+  function getSVGElement() {
+    return document.querySelector('.mermaid svg');
+  }
+
+  function prepareSvgForExport() {
+    const svg = getSVGElement();
+    if (!svg) return null;
+    const clone = svg.cloneNode(true);
+    const viewBox = (svg.getAttribute('viewBox') || '').split(/\s+|,/).map(Number);
+    let w, h;
+    if (viewBox.length === 4) {
+      w = viewBox[2];
+      h = viewBox[3];
+    } else {
+      const bbox = svg.getBBox();
+      w = bbox.width; h = bbox.height;
+    }
+    clone.setAttribute('width', w);
+    clone.setAttribute('height', h);
+    clone.removeAttribute('style');
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    if (!clone.getAttribute('xmlns:xlink')) clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    return { svg: clone, width: w, height: h };
+  }
+
+  function downloadSVG() {
+    const prep = prepareSvgForExport();
+    if (!prep) return alert('Diagrama aún cargando...');
+    const source = new XMLSerializer().serializeToString(prep.svg);
+    const blob = new Blob(['<?xml version="1.0" standalone="no"?>\r\n' + source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'neovision-component-diagram.svg';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadPNG() {
+    const prep = prepareSvgForExport();
+    if (!prep) return alert('Diagrama aún cargando...');
+    const source = new XMLSerializer().serializeToString(prep.svg);
+    const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = function () {
+      const scale = 2.5;
+      const canvas = document.createElement('canvas');
+      canvas.width = prep.width * scale;
+      canvas.height = prep.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function (blob) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'neovision-component-diagram.png';
+        document.body.appendChild(a); a.click(); a.remove();
+      });
+    };
+    img.onerror = function () {
+      alert('Error al renderizar el SVG a PNG. Probá con el botón SVG.');
+    };
+    img.src = url;
+  }
+</script>
+</body>
+</html>

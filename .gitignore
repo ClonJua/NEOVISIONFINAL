@@ -43,3 +43,6 @@ hs_err_*.log
 replay_*.log
 neovision-frontend/.env
 neovision/neovision-frontend/
+
+# Guia metodologica del DNP: material de terceros, su licencia prohibe redistribuirlo
+docs/Guía para la Elaboración del Manual Técnico y de Operación del Sistema.pdf
