@@ -6,6 +6,7 @@ import { adminService, type DocenteResponse, type CrearDocenteRequest } from '..
 import { docenteService } from '../../api/docenteService';
 import { especialidadService, type EspecialidadResponse } from '../../api/especialidadService';
 import { useToast } from '../../components/ui/Toast';
+import CargaMasivaExcel from '../../components/CargaMasivaExcel';
 
 export default function DocentesTab() {
   const toast = useToast();
@@ -130,6 +131,13 @@ export default function DocentesTab() {
         </button>
       </div>
 
+      <CargaMasivaExcel
+        entidad="docentes"
+        onDescargarPlantilla={adminService.descargarPlantillaDocentes}
+        onSubir={adminService.cargarDocentesExcel}
+        onExito={cargar}
+      />
+
       {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}<button onClick={() => setError('')} className="ml-2 font-bold">&times;</button></div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm">{success}</div>}
 
@@ -156,14 +164,14 @@ export default function DocentesTab() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Cedula</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Cédula</label>
               <input type="text" value={form.cedula}
                 onChange={e => { if (/^\d{0,15}$/.test(e.target.value)) setForm({...form, cedula: e.target.value}); }}
                 placeholder="1234567890"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Telefono</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
               <input type="tel" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
             </div>
@@ -220,7 +228,7 @@ export default function DocentesTab() {
           <option value="inactivo">Inactivos</option>
         </select>
         <input ref={searchRef} type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre, correo o cedula... (/)"
+          placeholder="Buscar por nombre, correo o cédula... (/)"
           className="flex-1 min-w-[200px] px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400" />
         {(filtroEstado || busqueda) && (
           <button type="button" onClick={() => { setFiltroEstado(''); setBusqueda(''); }}
@@ -234,7 +242,7 @@ export default function DocentesTab() {
             <tr>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Nombre</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Correo</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Cedula</th>
+              <th className="text-left px-4 py-3 font-medium text-slate-600">Cédula</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Especialidades</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Estado</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Acciones</th>

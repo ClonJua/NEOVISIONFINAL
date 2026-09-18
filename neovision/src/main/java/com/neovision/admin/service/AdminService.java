@@ -1,5 +1,6 @@
 package com.neovision.admin.service;
 
+import com.neovision.admin.dto.CargaMasivaResponse;
 import com.neovision.admin.dto.CrearDocenteRequest;
 import com.neovision.admin.dto.CrearEstudianteRequest;
 import com.neovision.admin.dto.CrearPacienteRequest;
@@ -211,4 +212,33 @@ public interface AdminService {
      * @param id ID del paciente
      */
     void reactivarPaciente(Integer id);
+
+    /**
+     * Crea varios docentes desde un Excel (.xlsx) con las columnas de la plantilla.
+     * Cada fila se procesa en su propia transacción: una fila con error se reporta
+     * y no impide que las demás se creen.
+     *
+     * @param archivo Excel subido por el admin
+     * @return resumen: filas leídas, creadas, errores y advertencias por fila
+     */
+    CargaMasivaResponse cargarDocentesDesdeExcel(org.springframework.web.multipart.MultipartFile archivo);
+
+    /**
+     * Plantilla Excel para la carga masiva de docentes (cabecera + hoja de instrucciones).
+     */
+    byte[] descargarPlantillaDocentes();
+
+    /**
+     * Crea varios estudiantes desde un Excel (.xlsx) con las columnas de la plantilla.
+     * Mismo comportamiento fila a fila que {@link #cargarDocentesDesdeExcel}.
+     *
+     * @param archivo Excel subido por el admin
+     * @return resumen: filas leídas, creadas y errores por fila
+     */
+    CargaMasivaResponse cargarEstudiantesDesdeExcel(org.springframework.web.multipart.MultipartFile archivo);
+
+    /**
+     * Plantilla Excel para la carga masiva de estudiantes (cabecera + hoja de instrucciones).
+     */
+    byte[] descargarPlantillaEstudiantes();
 }

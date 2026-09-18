@@ -36,7 +36,8 @@ export interface PacienteResponse {
   idPaciente: number;
   nombre: string;
   apellido: string;
-  correo: string;
+  /** null cuando el paciente se registro sin correo (no tiene cuenta de acceso). */
+  correo: string | null;
   tipoDocumento: string;
   numeroDocumento: string;
   fechaNacimiento: string;
@@ -126,6 +127,27 @@ export interface CitaResponse {
   especialidadesDocente?: EspecialidadInfo[];
 }
 
+export interface CargaMasivaIncidencia {
+  /** Fila del Excel tal como se ve en la hoja (la cabecera es la fila 1). */
+  fila: number;
+  mensaje: string;
+}
+
+export interface CargaMasivaResponse {
+  totalFilas: number;
+  creados: number;
+  errores: CargaMasivaIncidencia[];
+  advertencias: CargaMasivaIncidencia[];
+}
+
+// El axios global fija Content-Type: application/json; para subir un archivo hay
+// que sobreescribirlo para que el navegador arme el multipart con su boundary.
+const multipart = (archivo: File) => {
+  const formData = new FormData();
+  formData.append('archivo', archivo);
+  return { formData, config: { headers: { 'Content-Type': 'multipart/form-data' } } };
+};
+
 export const adminService = {
   // Docentes
   listarDocentes: () => api.get<ApiResponse<DocenteResponse[]>>('/admin/docentes'),
@@ -134,6 +156,12 @@ export const adminService = {
   desactivarDocente: (id: number) => api.delete<ApiResponse<void>>(`/admin/docentes/${id}`),
   eliminarDocente: (id: number) => api.delete<ApiResponse<void>>(`/admin/docentes/${id}/permanente`),
   reactivarDocente: (id: number) => api.patch<ApiResponse<void>>(`/admin/docentes/${id}/reactivar`),
+  cargarDocentesExcel: (archivo: File) => {
+    const { formData, config } = multipart(archivo);
+    return api.post<ApiResponse<CargaMasivaResponse>>('/admin/docentes/carga-masiva', formData, config);
+  },
+  descargarPlantillaDocentes: () =>
+    api.get<Blob>('/admin/docentes/carga-masiva/plantilla', { responseType: 'blob' }),
 
   // Estudiantes
   listarEstudiantes: () => api.get<ApiResponse<EstudianteResponse[]>>('/admin/estudiantes'),
@@ -142,6 +170,12 @@ export const adminService = {
   desactivarEstudiante: (id: number) => api.delete<ApiResponse<void>>(`/admin/estudiantes/${id}`),
   eliminarEstudiante: (id: number) => api.delete<ApiResponse<void>>(`/admin/estudiantes/${id}/permanente`),
   reactivarEstudiante: (id: number) => api.patch<ApiResponse<void>>(`/admin/estudiantes/${id}/reactivar`),
+  cargarEstudiantesExcel: (archivo: File) => {
+    const { formData, config } = multipart(archivo);
+    return api.post<ApiResponse<CargaMasivaResponse>>('/admin/estudiantes/carga-masiva', formData, config);
+  },
+  descargarPlantillaEstudiantes: () =>
+    api.get<Blob>('/admin/estudiantes/carga-masiva/plantilla', { responseType: 'blob' }),
 
   // Pacientes
   listarPacientes: () => api.get<ApiResponse<PacienteResponse[]>>('/admin/pacientes'),

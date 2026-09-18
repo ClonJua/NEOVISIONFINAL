@@ -5,6 +5,7 @@ import { useRowNavigation } from '../../hooks/useRowNavigation';
 import { adminService, type EstudianteResponse, type CrearEstudianteRequest } from '../../api/adminService';
 import { estudianteService } from '../../api/estudianteService';
 import { useToast } from '../../components/ui/Toast';
+import CargaMasivaExcel from '../../components/CargaMasivaExcel';
 
 export default function EstudiantesTab() {
   const toast = useToast();
@@ -114,6 +115,13 @@ export default function EstudiantesTab() {
         </button>
       </div>
 
+      <CargaMasivaExcel
+        entidad="estudiantes"
+        onDescargarPlantilla={adminService.descargarPlantillaEstudiantes}
+        onSubir={adminService.cargarEstudiantesExcel}
+        onExito={cargar}
+      />
+
       {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}<button onClick={() => setError('')} className="ml-2 font-bold">&times;</button></div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm">{success}</div>}
 
@@ -140,7 +148,7 @@ export default function EstudiantesTab() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Cedula</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Cédula</label>
               <input type="text" value={form.cedula}
                 onChange={e => { if (/^\d{0,15}$/.test(e.target.value)) setForm({...form, cedula: e.target.value}); }}
                 required placeholder="1234567890"
@@ -156,7 +164,7 @@ export default function EstudiantesTab() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Telefono</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
               <input type="tel" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
             </div>
@@ -185,7 +193,7 @@ export default function EstudiantesTab() {
           {[...new Set(estudiantes.map(e => e.semestre))].sort((a, b) => a - b).map(s => <option key={s} value={s}>Semestre {s}</option>)}
         </select>
         <input ref={searchRef} type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre, correo o cedula... (/)"
+          placeholder="Buscar por nombre, correo o cédula... (/)"
           className="flex-1 min-w-[200px] px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400" />
         {(filtroEstado || filtroSemestre || busqueda) && (
           <button type="button" onClick={() => { setFiltroEstado(''); setFiltroSemestre(''); setBusqueda(''); }}
@@ -199,7 +207,7 @@ export default function EstudiantesTab() {
             <tr>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Nombre</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Correo</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Cedula</th>
+              <th className="text-left px-4 py-3 font-medium text-slate-600">Cédula</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Semestre</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Estado</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Acciones</th>

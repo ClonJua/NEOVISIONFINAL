@@ -1,5 +1,6 @@
 package com.neovision.admin.controller;
 
+import com.neovision.admin.dto.CargaMasivaResponse;
 import com.neovision.admin.dto.CrearDocenteRequest;
 import com.neovision.admin.dto.CrearEstudianteRequest;
 import com.neovision.admin.dto.CrearPacienteRequest;
@@ -14,6 +15,8 @@ import com.neovision.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +26,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -138,6 +143,45 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok("Estudiante eliminado permanentemente", null));
     }
 
+    // --- Carga masiva (Excel) ---
+
+    @Operation(summary = "Carga masiva de docentes",
+            description = "Crea varios docentes desde un Excel (.xlsx) con las columnas de la plantilla. Cada fila se procesa por separado: las que fallan se reportan y las demás sí se crean.")
+    @PostMapping(value = "/docentes/carga-masiva", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CargaMasivaResponse>> cargarDocentesDesdeExcel(
+            @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(ApiResponse.ok("Carga masiva procesada", adminService.cargarDocentesDesdeExcel(archivo)));
+    }
+
+    @Operation(summary = "Plantilla de carga masiva de docentes",
+            description = "Excel con la cabecera esperada y una hoja de instrucciones con un ejemplo.")
+    @GetMapping("/docentes/carga-masiva/plantilla")
+    public ResponseEntity<byte[]> descargarPlantillaDocentes() {
+        return plantilla("plantilla_docentes.xlsx", adminService.descargarPlantillaDocentes());
+    }
+
+    @Operation(summary = "Carga masiva de estudiantes",
+            description = "Crea varios estudiantes desde un Excel (.xlsx) con las columnas de la plantilla. Cada fila se procesa por separado: las que fallan se reportan y las demás sí se crean.")
+    @PostMapping(value = "/estudiantes/carga-masiva", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CargaMasivaResponse>> cargarEstudiantesDesdeExcel(
+            @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(ApiResponse.ok("Carga masiva procesada", adminService.cargarEstudiantesDesdeExcel(archivo)));
+    }
+
+    @Operation(summary = "Plantilla de carga masiva de estudiantes",
+            description = "Excel con la cabecera esperada y una hoja de instrucciones con un ejemplo.")
+    @GetMapping("/estudiantes/carga-masiva/plantilla")
+    public ResponseEntity<byte[]> descargarPlantillaEstudiantes() {
+        return plantilla("plantilla_estudiantes.xlsx", adminService.descargarPlantillaEstudiantes());
+    }
+
+    private ResponseEntity<byte[]> plantilla(String nombreArchivo, byte[] contenido) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + nombreArchivo)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(contenido);
+    }
+
     // --- Pacientes ---
 
     @Operation(summary = "Crear paciente", description = "Registra un nuevo paciente en el sistema.")
@@ -168,7 +212,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok("Paciente desactivado", null));
     }
 
-    @Operation(summary = "Restablecer contrasena de paciente", description = "El admin/secretaria fija una nueva contrasena para el paciente (no hay flujo de recuperacion por correo).")
+    @Operation(summary = "Restablecer contraseña de paciente", description = "El admin/secretaría fija una nueva contraseña para el paciente (no hay flujo de recuperación por correo).")
     @PatchMapping("/pacientes/{id}/contrasena")
     public ResponseEntity<ApiResponse<Void>> resetearContrasenaPaciente(
             @PathVariable Integer id, @RequestBody java.util.Map<String, String> body) {
@@ -177,7 +221,7 @@ public class AdminController {
             throw new RuntimeException("La nueva contraseña es obligatoria");
         }
         adminService.resetearContrasenaPaciente(id, nuevaContrasena);
-        return ResponseEntity.ok(ApiResponse.ok("Contrasena restablecida", null));
+        return ResponseEntity.ok(ApiResponse.ok("Contraseña restablecida", null));
     }
 
     @Operation(summary = "Reactivar paciente", description = "Reactiva un paciente previamente desactivado.")
