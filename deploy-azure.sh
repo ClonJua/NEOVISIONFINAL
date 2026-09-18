@@ -2,8 +2,9 @@
 # Despliegue manual a Azure App Service: un solo jar con backend + frontend.
 #
 # Requisitos: `az login` hecho, Node y Java 21. Uso desde la raiz del repo:
-#   ./deploy-azure.sh            # build frontend + jar (con tests unitarios) + deploy
+#   ./deploy-azure.sh            # build frontend + jar (con tests unitarios) + deploy + logs
 #   SKIP_TESTS=1 ./deploy-azure.sh
+#   TAIL_LOGS=0  ./deploy-azure.sh   # no quedarse siguiendo los logs al final
 #
 # Antes de desplegar cambios de esquema, crea un branch de respaldo en Neon.
 set -euo pipefail
@@ -36,6 +37,10 @@ echo "    jar: $JAR ($(du -h "$JAR" | cut -f1))"
 echo "==> 3/4 az webapp deploy -> $APP"
 az webapp deploy -n "$APP" -g "$RG" --type jar --src-path "$JAR" --clean true --restart true --only-show-errors
 
-echo "==> 4/4 Logs en vivo (Ctrl+C para salir)."
-echo "    Espera a ver: 'Successfully applied N migrations' (Flyway) y 'Started NeovisionApplication'."
-az webapp log tail -n "$APP" -g "$RG"
+if [ "${TAIL_LOGS:-1}" = "1" ]; then
+  echo "==> 4/4 Logs en vivo (Ctrl+C para salir)."
+  echo "    Espera a ver: 'Successfully applied N migrations' (Flyway) y 'Started NeovisionApplication'."
+  az webapp log tail -n "$APP" -g "$RG"
+else
+  echo "==> 4/4 Listo. Logs: az webapp log tail -n $APP -g $RG"
+fi

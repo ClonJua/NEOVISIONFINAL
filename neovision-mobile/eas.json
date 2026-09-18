@@ -25,6 +25,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://neovision-demo-api.azurewebsites.net/api"
       }
