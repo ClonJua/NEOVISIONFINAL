@@ -37,7 +37,7 @@ public interface EmailService {
                            String correoEstudiante, String nombreEstudiante,
                            String correoDocente, String nombreDocente,
                            String fecha, String horaInicio, String horaFin,
-                           String canceladoPor);
+                           String canceladoPor, String motivo);
 
     /**
      * Envía notificación de reprogramación con la cita anterior y la nueva.

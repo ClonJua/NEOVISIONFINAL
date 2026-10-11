@@ -29,12 +29,15 @@ public interface CitaService {
     CitaResponse reservarBloque(String correoPaciente, Integer idCita,
                                  Integer idEspecialidad, String subtipoControl);
     CitaResponse cancelarPaciente(String correoPaciente, Integer idCita, String observaciones);
+    CitaResponse reprogramarPaciente(String correoPaciente, Integer idCitaActual, Integer idCitaNueva);
     List<CitaResponse> misCitas(String correoPaciente);
 
     // --- Estudiante ---
     List<CitaResponse> misBloques(String correoEstudiante);
     CitaResponse asignarPaciente(String correoEstudiante, Integer idCita, Integer idPaciente);
     ProgresoResponse progresoEstudiante(String correoEstudiante);
+    CitaResponse cancelarEstudiante(String correoEstudiante, Integer idCita, String observaciones);
+    CitaResponse reprogramarEstudiante(String correoEstudiante, Integer idCitaActual, Integer idCitaNueva);
 
     // --- Admin reprogramar ---
     CitaResponse reprogramarAdmin(Integer idCitaActual, Integer idCitaNueva);

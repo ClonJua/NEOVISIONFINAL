@@ -7,6 +7,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -57,16 +58,19 @@ public class GmailEmailService implements EmailService {
                                   String correoEstudiante, String nombreEstudiante,
                                   String correoDocente, String nombreDocente,
                                   String fecha, String horaInicio, String horaFin,
-                                  String canceladoPor) {
+                                  String canceladoPor, String motivo) {
         try {
             String html = plantillaBase("Cita Cancelada",
                     "<p>Se ha cancelado una cita en <strong>NeoVision</strong>.</p>"
-                    + "<p><strong>Cancelado por:</strong> " + canceladoPor + "</p>"
+                    + "<p><strong>Cancelado por:</strong> " + esc(canceladoPor) + "</p>"
                     + "<table style='margin:16px 0;border-collapse:collapse'>"
                     + fila("Fecha", fecha)
                     + fila("Horario", horaInicio + " - " + horaFin)
                     + fila("Paciente", nombrePaciente)
                     + fila("Estudiante", nombreEstudiante)
+                    + (motivo != null && !motivo.isBlank()
+                        ? fila("Motivo", motivo)
+                        : "")
                     + "</table>"
                     + "<p style='color:#64748b;font-size:13px'>El bloque ha quedado disponible para otros pacientes.</p>");
 
@@ -208,7 +212,7 @@ public class GmailEmailService implements EmailService {
             helper.setTo(correoPaciente);
             helper.setSubject("NeoVision - Copia de tu historia clínica");
             String html = plantillaBase("Copia de Historia Clínica",
-                    "<p>Hola <strong>" + nombrePaciente + "</strong>,</p>"
+                    "<p>Hola <strong>" + esc(nombrePaciente) + "</strong>,</p>"
                     + "<p>Adjuntamos la copia de tu historia clínica, conforme a tu derecho de acceso "
                     + "a la información (Ley 1266 de 2008 y Resolución 1995 de 1999).</p>"
                     + "<p>Este documento es confidencial y de uso personal.</p>");
@@ -237,7 +241,7 @@ public class GmailEmailService implements EmailService {
             helper.setFrom(fromEmail, fromName);
             helper.setTo(correoDestino);
             helper.setSubject(asunto);
-            String html = plantillaBase(asunto, "<p>" + descripcion + "</p>");
+            String html = plantillaBase(esc(asunto), "<p>" + esc(descripcion) + "</p>");
             helper.setText(html, true);
             helper.addAttachment(nombreArchivo,
                     new org.springframework.core.io.ByteArrayResource(contenido), contentType);
@@ -330,13 +334,19 @@ public class GmailEmailService implements EmailService {
         if (texto == null || texto.isBlank()) return "";
         return "<div style='margin:14px 0;padding:14px 16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px'>"
                 + "<p style='margin:0;color:#78350f;font-weight:600;font-size:14px'>📋 Antes de tu cita</p>"
-                + "<p style='margin:6px 0 0;color:#78350f;font-size:13px'>" + texto + "</p>"
+                + "<p style='margin:6px 0 0;color:#78350f;font-size:13px'>" + esc(texto) + "</p>"
                 + "</div>";
     }
 
+    // Los valores vienen de datos que escriben los usuarios (nombres, salones,
+    // motivos): se escapan para que no puedan inyectar HTML en el correo.
     private String fila(String label, String value) {
         return "<tr><td style='padding:6px 16px 6px 0;color:#64748b;font-size:13px;white-space:nowrap'>"
                 + label + "</td><td style='padding:6px 0;font-weight:600;font-size:14px'>"
-                + value + "</td></tr>";
+                + esc(value) + "</td></tr>";
+    }
+
+    private static String esc(String texto) {
+        return texto == null ? "" : HtmlUtils.htmlEscape(texto, "UTF-8");
     }
 }

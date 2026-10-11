@@ -182,6 +182,36 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getMessage()).contains("correo").contains("no puede estar vacío");
     }
 
+    @Test
+    void tipoDeParametroInvalido_mapeaA400SinExponerTiposInternos() {
+        MethodParameter param = mock(MethodParameter.class);
+        var ex = new org.springframework.web.method.annotation.MethodArgumentTypeMismatchException(
+                "abc", Integer.class, "idCita", param, new IllegalArgumentException("x"));
+
+        var response = handler.handleTypeMismatch(ex);
+
+        assertStatus(response, HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getMessage())
+                .contains("idCita")
+                .doesNotContain("java.lang")
+                .doesNotContain("Integer");
+    }
+
+    @Test
+    void cuerpoJsonIlegible_mapeaA400SinExponerDetallesDelParser() {
+        var ex = new org.springframework.http.converter.HttpMessageNotReadableException(
+                "JSON parse error: Unexpected character ('n' (code 110)): com.fasterxml.jackson...",
+                (org.springframework.http.HttpInputMessage) null);
+
+        var response = handler.handleMensajeIlegible(ex);
+
+        assertStatus(response, HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getMessage())
+                .doesNotContain("Jackson")
+                .doesNotContain("com.fasterxml")
+                .doesNotContain("parse error");
+    }
+
     private void assertStatus(org.springframework.http.ResponseEntity<?> response, HttpStatus esperado) {
         assertThat(response.getStatusCode()).isEqualTo(esperado);
     }

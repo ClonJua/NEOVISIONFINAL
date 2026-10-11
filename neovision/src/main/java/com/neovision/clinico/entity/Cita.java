@@ -102,6 +102,20 @@ public class Cita {
     @Column(name = "subtipo_control", length = 50)
     private String subtipoControl;
 
+    // Registro de la cancelacion. La fila cancelada conserva al paciente para su
+    // historial y para el limite de cancelaciones; el cupo se libera con una
+    // cita DISPONIBLE nueva en el mismo bloque.
+    @Column(name = "fecha_cancelacion")
+    private LocalDateTime fechaCancelacion;
+
+    /** PACIENTE | ESTUDIANTE | ADMIN. Solo PACIENTE cuenta para el limite. */
+    @Column(name = "cancelada_por", length = 20)
+    private String canceladaPor;
+
+    /** Veces que el paciente ha movido la reserva actual. Viaja con la reserva al reprogramar. */
+    @Column(name = "reprogramaciones_paciente", nullable = false)
+    private Integer reprogramacionesPaciente = 0;
+
     // Bloqueo optimista: evita que dos usuarios reserven el mismo bloque
     // "DISPONIBLE" simultáneamente sin que el sistema lo detecte.
     @Version

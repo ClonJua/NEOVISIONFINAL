@@ -62,6 +62,31 @@ public class CitaEstudianteController {
         return ResponseEntity.ok(ApiResponse.ok("Paciente asignado al bloque", response));
     }
 
+    /** Cancela una cita reservada de uno de sus bloques. El motivo es obligatorio. */
+    @PatchMapping("/citas/{idCita}/cancelar")
+    public ResponseEntity<ApiResponse<CitaResponse>> cancelar(
+            Authentication auth,
+            @PathVariable Integer idCita,
+            @RequestBody(required = false) Map<String, String> body) {
+        String observaciones = body != null ? body.get("observaciones") : null;
+        CitaResponse response = citaService.cancelarEstudiante(auth.getName(), idCita, observaciones);
+        return ResponseEntity.ok(ApiResponse.ok("Cita cancelada", response));
+    }
+
+    /** Mueve al paciente de una cita reservada a otro de sus bloques disponibles. */
+    @PatchMapping("/citas/{idCita}/reprogramar")
+    public ResponseEntity<ApiResponse<CitaResponse>> reprogramar(
+            Authentication auth,
+            @PathVariable Integer idCita,
+            @RequestBody Map<String, Integer> body) {
+        Integer idCitaNueva = body.get("idCitaNueva");
+        if (idCitaNueva == null) {
+            throw new RuntimeException("Debes indicar el nuevo bloque");
+        }
+        CitaResponse response = citaService.reprogramarEstudiante(auth.getName(), idCita, idCitaNueva);
+        return ResponseEntity.ok(ApiResponse.ok("Cita reprogramada", response));
+    }
+
     @PostMapping("/pacientes")
     public ResponseEntity<ApiResponse<PacienteResponse>> crearPaciente(
             @Valid @RequestBody CrearPacienteRequest request) {

@@ -36,4 +36,9 @@ public class CitaResponse {
     private String subtipoControl;
     // Especialidades del docente que supervisa la sesion (para que el paciente sepa qué puede pedir)
     private java.util.List<EspecialidadResponse> especialidadesDocente;
+    // Cancelacion (null si no esta cancelada o es anterior al registro): PACIENTE | ESTUDIANTE | ADMIN
+    private String canceladaPor;
+    private String fechaCancelacion;
+    // Reprogramaciones que le quedan al paciente sobre esta reserva
+    private Integer reprogramacionesRestantes;
 }

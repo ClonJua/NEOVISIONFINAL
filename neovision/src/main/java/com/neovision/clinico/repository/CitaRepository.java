@@ -50,6 +50,7 @@ public interface CitaRepository extends JpaRepository<Cita, Integer> {
             FROM Cita c LEFT JOIN c.estudiante2 e2
             WHERE c.paciente.idPaciente = :idPaciente
               AND (c.estudiante.idEstudiante = :idEstudiante OR e2.idEstudiante = :idEstudiante)
+              AND c.estado <> 'CANCELADO'
             """)
     boolean existsByEstudianteIdEstudianteAndPacienteIdPaciente(@Param("idEstudiante") Integer idEstudiante,
                                                                  @Param("idPaciente") Integer idPaciente);
@@ -62,11 +63,21 @@ public interface CitaRepository extends JpaRepository<Cita, Integer> {
             SELECT c FROM Cita c LEFT JOIN c.estudiante2 e2
             WHERE c.paciente.idPaciente = :idPaciente
               AND (c.estudiante.idEstudiante = :idEstudiante OR e2.idEstudiante = :idEstudiante)
+              AND c.estado <> 'CANCELADO'
             """)
     List<Cita> findByEstudianteIdEstudianteAndPacienteIdPaciente(@Param("idEstudiante") Integer idEstudiante,
                                                                   @Param("idPaciente") Integer idPaciente);
 
-    boolean existsBySesionDocenteIdDocenteAndPacienteIdPaciente(Integer idDocente, Integer idPaciente);
+    // Una cita cancelada conserva al paciente (historial), pero no crea vinculo asistencial.
+    @Query("""
+            SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END
+            FROM Cita c
+            WHERE c.sesion.docente.idDocente = :idDocente
+              AND c.paciente.idPaciente = :idPaciente
+              AND c.estado <> 'CANCELADO'
+            """)
+    boolean existsBySesionDocenteIdDocenteAndPacienteIdPaciente(@Param("idDocente") Integer idDocente,
+                                                                @Param("idPaciente") Integer idPaciente);
 
     // Un paciente solo puede tener UNA cita reservada a la vez. Como la cita ya
     // agrupa a los (hasta dos) estudiantes que lo atienden, no hace falta —ni se
@@ -151,12 +162,14 @@ public interface CitaRepository extends JpaRepository<Cita, Integer> {
             """)
     List<Cita> findByDocenteIdDocente(@Param("idDocente") Integer idDocente);
 
-    // Contar cancelaciones del paciente en el último mes (para límite de cancelaciones)
+    // Contar cancelaciones hechas por el propio paciente en el último mes (para
+    // el límite). Las del estudiante o la administración no lo penalizan.
     @Query("""
             SELECT COUNT(c) FROM Cita c
             WHERE c.paciente.idPaciente = :idPaciente
               AND c.estado = 'CANCELADO'
-              AND c.fechaReserva >= :hace30Dias
+              AND c.canceladaPor = 'PACIENTE'
+              AND c.fechaCancelacion >= :hace30Dias
             """)
     long countCancelacionesEnMes(@Param("idPaciente") Integer idPaciente,
                                   @Param("hace30Dias") java.time.LocalDateTime hace30Dias);

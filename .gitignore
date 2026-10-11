@@ -44,3 +44,8 @@ replay_*.log
 neovision-frontend/.env
 neovision/neovision-frontend/
 
+
+# Auditoria de seguridad: los informes se regeneran, no se versionan
+# (pueden contener rutas locales y detalles de vulnerabilidades sin corregir)
+security/reports/*
+!security/reports/.gitkeep

@@ -8,9 +8,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Manejador global de excepciones. Convierte excepciones del dominio en respuestas
@@ -210,6 +212,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("El archivo es demasiado grande (máximo 5 MB)."));
+    }
+
+    // Un parametro de ruta o query con tipo equivocado (p.ej. /citas/abc/cancelar,
+    // donde se espera un Integer). El mensaje nativo de Spring menciona clases
+    // internas ("Failed to convert value of type 'java.lang.String' to required
+    // type 'java.lang.Integer'"), asi que se responde algo generico sin filtrar
+    // detalles de implementacion.
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("El valor de '" + ex.getName() + "' no tiene un formato válido."));
+    }
+
+    // Cuerpo JSON malformado o ilegible. El mensaje nativo expone detalles del
+    // parser (posicion, caracter, clase Jackson); se responde algo legible.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMensajeIlegible(HttpMessageNotReadableException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("El cuerpo de la petición no tiene un formato válido."));
     }
 
     @ExceptionHandler(RuntimeException.class)

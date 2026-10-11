@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
-import type { CitaResponse } from '../types/cita';
+import { textoCancelacion, type CitaResponse } from '../types/cita';
 import { formatFecha, formatRangoHora } from '../utils/format';
 import { EstadoBadge } from './EstadoBadge';
 
@@ -33,6 +33,7 @@ export function CitaCard({ cita, actions, onPress }: Props) {
       <Row label="Docente" value={cita.nombreDocente} />
       <Row label="Espacio" value={cita.nombreEspacio ?? '-'} />
       {cita.nombreSalon ? <Row label="Salon" value={cita.nombreSalon} /> : null}
+      {textoCancelacion(cita) ? <Text style={styles.cancelacion}>{textoCancelacion(cita)}</Text> : null}
     </>
   );
 
@@ -66,4 +67,5 @@ const styles = StyleSheet.create({
   label:   { color: theme.colors.textMuted, fontSize: 13 },
   value:   { color: theme.colors.text, fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right', marginLeft: 12 },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  cancelacion: { color: theme.colors.textMuted, fontSize: 12, fontStyle: 'italic', marginTop: 6 },
 });

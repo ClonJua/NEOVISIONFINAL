@@ -33,6 +33,11 @@ export interface CitaResponse {
   observacionRecordatorio?: string | null;
   subtipoControl?: string | null;
   especialidadesDocente?: EspecialidadInfo[];
+  // Cancelación: quién y cuándo (null si no está cancelada o es anterior al registro)
+  canceladaPor?: 'PACIENTE' | 'ESTUDIANTE' | 'ADMIN' | null;
+  fechaCancelacion?: string | null;
+  /** Reprogramaciones que le quedan al paciente sobre esta reserva. */
+  reprogramacionesRestantes?: number;
 }
 
 export interface PacienteResponse {
@@ -47,3 +52,17 @@ export interface PacienteResponse {
   correo: string | null;
   activo: boolean;
 }
+
+const AUTOR_CANCELACION: Record<string, string> = {
+  PACIENTE: 'el paciente',
+  ESTUDIANTE: 'el estudiante',
+  ADMIN: 'la administración',
+};
+
+/** "Cancelada por el paciente el 2026-10-08 14:30", o null si no aplica. */
+export const textoCancelacion = (c: Pick<CitaResponse, 'estado' | 'canceladaPor' | 'fechaCancelacion'>) => {
+  if (c.estado !== 'CANCELADO' || !c.canceladaPor) return null;
+  const quien = AUTOR_CANCELACION[c.canceladaPor] ?? c.canceladaPor;
+  const cuando = c.fechaCancelacion ? ` el ${c.fechaCancelacion.replace('T', ' ').substring(0, 16)}` : '';
+  return `Cancelada por ${quien}${cuando}`;
+};

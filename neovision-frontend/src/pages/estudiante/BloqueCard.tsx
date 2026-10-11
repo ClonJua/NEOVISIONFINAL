@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { CitaResponse } from '../../api/citaService';
+import { textoCancelacion, type CitaResponse } from '../../api/citaService';
 import { EstadoBadge } from '../../components/ui';
 
 interface Props {
@@ -28,6 +28,7 @@ export default function BloqueCard({ cita: c, acciones }: Props) {
               Atienden: {c.nombreEstudiante} y {c.nombreEstudiante2}
             </div>
           )}
+          {textoCancelacion(c) && <div className="text-sm text-slate-500">{textoCancelacion(c)}</div>}
           {c.observaciones && <div className="text-sm text-slate-400 italic">"{c.observaciones}"</div>}
           {c.fechaReserva && (
             <div className="text-xs text-slate-400">Reservada: {c.fechaReserva.replace('T', ' ').substring(0, 16)}</div>

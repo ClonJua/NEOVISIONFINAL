@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useMsal } from '@azure/msal-react';
-import { citaService, nombresEstudiantes, type CitaResponse } from '../../api/citaService';
+import { citaService, nombresEstudiantes, textoCancelacion, type CitaResponse } from '../../api/citaService';
 import { pacienteService, type EditarPacienteRequest } from '../../api/pacienteService';
 import type { PacienteResponse } from '../../api/adminService';
 import { especialidadService, type EspecialidadResponse, SUBTIPOS_CONTROL } from '../../api/especialidadService';
@@ -86,6 +86,12 @@ export default function DashboardPage() {
   // Cancelar modal
   const [citaACancelar, setCitaACancelar] = useState<CitaResponse | null>(null);
   const [obsCancelar, setObsCancelar] = useState('');
+
+  // Reprogramar modal: bloques disponibles de la misma especialidad que la cita
+  const [citaAReprogramar, setCitaAReprogramar] = useState<CitaResponse | null>(null);
+  const [opcionesReprogramar, setOpcionesReprogramar] = useState<CitaResponse[]>([]);
+  const [cargandoOpciones, setCargandoOpciones] = useState(false);
+  const [idDestino, setIdDestino] = useState<number | ''>('');
 
   // Reservar modal
   const [citaAReservar, setCitaAReservar] = useState<CitaResponse | null>(null);
@@ -224,6 +230,42 @@ export default function DashboardPage() {
       await cargarMisCitas();
     } catch (err: any) {
       toast.error('No se pudo cancelar', err.response?.data?.message || 'Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const abrirReprogramar = async (c: CitaResponse) => {
+    setCitaAReprogramar(c);
+    setIdDestino('');
+    setOpcionesReprogramar([]);
+    setCargandoOpciones(true);
+    try {
+      const res = await citaService.bloquesDisponibles(c.idEspecialidad ?? undefined);
+      setOpcionesReprogramar(res.data.data);
+    } catch {
+      toast.error('Error al cargar horarios disponibles');
+    } finally {
+      setCargandoOpciones(false);
+    }
+  };
+
+  const cerrarReprogramar = () => {
+    setCitaAReprogramar(null);
+    setIdDestino('');
+  };
+
+  const confirmarReprogramacion = async () => {
+    if (!citaAReprogramar || idDestino === '') return;
+    setLoading(true);
+    try {
+      const res = await citaService.reprogramarPaciente(citaAReprogramar.idCita, idDestino);
+      const nueva = res.data.data;
+      toast.success('Cita reprogramada', `${formatFechaLarga(nueva.fechaSesion)} - ${nueva.horaInicio}`);
+      cerrarReprogramar();
+      await cargarMisCitas();
+    } catch (err: any) {
+      toast.error('No se pudo reprogramar', err.response?.data?.message || 'Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -401,9 +443,23 @@ export default function DashboardPage() {
               <GrupoCitas
                 grupos={agruparPorFecha(citasActivas)}
                 renderAccion={(c) => (
-                  <Button variant="outline" size="sm" onClick={() => setCitaACancelar(c)}>
-                    Cancelar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<CalendarIcon size={14} />}
+                      disabled={c.reprogramacionesRestantes === 0}
+                      title={c.reprogramacionesRestantes === 0
+                        ? 'Ya usaste tus reprogramaciones para esta cita. Comunícate con la secretaría.'
+                        : `Te quedan ${c.reprogramacionesRestantes ?? ''} reprogramaciones`}
+                      onClick={() => abrirReprogramar(c)}
+                    >
+                      Reprogramar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setCitaACancelar(c)}>
+                      Cancelar
+                    </Button>
+                  </div>
                 )}
               />
             )}
@@ -539,6 +595,48 @@ export default function DashboardPage() {
         )}
       </Modal>
 
+      {/* Modal reprogramar */}
+      <Modal
+        open={!!citaAReprogramar}
+        onClose={cerrarReprogramar}
+        title="Reprogramar cita"
+        description="Elige un nuevo horario. Tu horario actual quedará libre para otros pacientes."
+        footer={
+          <>
+            <Button variant="ghost" onClick={cerrarReprogramar}>Volver</Button>
+            <Button loading={loading} disabled={idDestino === ''} leftIcon={<CalendarIcon size={15} />} onClick={confirmarReprogramacion}>
+              Reprogramar
+            </Button>
+          </>
+        }
+      >
+        {citaAReprogramar && (
+          <div className="space-y-4">
+            <DetallesCita cita={citaAReprogramar} />
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Nuevo horario</label>
+              {cargandoOpciones ? (
+                <p className="text-sm text-slate-500">Cargando horarios...</p>
+              ) : opcionesReprogramar.length === 0 ? (
+                <p className="text-sm text-slate-500">No hay otros horarios disponibles para este tipo de cita.</p>
+              ) : (
+                <select
+                  value={idDestino}
+                  onChange={(e) => setIdDestino(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-400">
+                  <option value="">Selecciona...</option>
+                  {opcionesReprogramar.map((o) => (
+                    <option key={o.idCita} value={o.idCita}>
+                      {formatFechaLarga(o.fechaSesion)} · {o.horaInicio}–{o.horaFin} · {o.nombreSalon ?? 'Sin salón'} · {o.nombreDocente}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Modal cancelar */}
       <Modal
         open={!!citaACancelar}
@@ -564,6 +662,7 @@ export default function DashboardPage() {
               placeholder="Ej: tengo un imprevisto laboral"
               value={obsCancelar}
               onChange={(e) => setObsCancelar(e.target.value)}
+              maxLength={255}
               rows={3}
             />
           </div>
@@ -706,6 +805,9 @@ function CitaCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           {mostrarEstado && <EstadoBadge estado={cita.estado} />}
+          {mostrarEstado && textoCancelacion(cita) && (
+            <span className="text-xs text-slate-500">{textoCancelacion(cita)}</span>
+          )}
         </div>
         <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm">
           <Info icon={<MapPinIcon size={14} />}>{cita.nombreEspacio ?? 'Sin espacio'} · {cita.nombreSalon ?? 'Sin salon'}</Info>

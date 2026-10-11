@@ -78,6 +78,21 @@ public class CitaPacienteController {
         return ResponseEntity.ok(ApiResponse.ok("Cita cancelada", response));
     }
 
+    /** Mueve la cita reservada del paciente autenticado a otro bloque disponible. */
+    @io.swagger.v3.oas.annotations.Operation(summary = "Reprogramar cita", description = "Mueve una cita RESERVADO del paciente a otro bloque DISPONIBLE. Body: { idCitaNueva }.")
+    @PatchMapping("/citas/{idCita}/reprogramar")
+    public ResponseEntity<ApiResponse<CitaResponse>> reprogramar(
+            Authentication auth,
+            @PathVariable Integer idCita,
+            @RequestBody Map<String, Integer> body) {
+        Integer idCitaNueva = body.get("idCitaNueva");
+        if (idCitaNueva == null) {
+            throw new RuntimeException("Debes indicar el nuevo horario");
+        }
+        CitaResponse response = citaService.reprogramarPaciente(auth.getName(), idCita, idCitaNueva);
+        return ResponseEntity.ok(ApiResponse.ok("Cita reprogramada", response));
+    }
+
     /** Retorna el historial de citas del paciente autenticado. */
     @io.swagger.v3.oas.annotations.Operation(summary = "Mis citas", description = "Retorna todas las citas del paciente autenticado, en cualquier estado.")
     @GetMapping("/citas")

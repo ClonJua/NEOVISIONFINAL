@@ -238,7 +238,7 @@ export default function EstudiantePage() {
               <DisponiblesTab bloques={bloquesDisponibles} pacientes={pacientes} onRefrescar={cargar} />
             )}
             {tab === 'agendadas' && (
-              <AgendadasTab bloques={bloquesAgendados} onRefrescar={cargar} onVerHistoria={setHistoriaCita} />
+              <AgendadasTab bloques={bloquesAgendados} disponibles={bloquesDisponibles} onRefrescar={cargar} onVerHistoria={setHistoriaCita} />
             )}
             {tab === 'historial' && (
               <HistorialTab bloques={bloquesHistorial} onVerHistoria={setHistoriaCita} />

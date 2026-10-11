@@ -33,3 +33,21 @@ export function useAsignarPaciente() {
   });
 }
 
+export function useCancelarEstudiante() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idCita, motivo }: { idCita: number; motivo: string }) =>
+      citaService.cancelarEstudiante(idCita, motivo),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: qk.estudiante.bloques }); },
+  });
+}
+
+export function useReprogramarEstudiante() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idCita, idCitaNueva }: { idCita: number; idCitaNueva: number }) =>
+      citaService.reprogramarEstudiante(idCita, idCitaNueva),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: qk.estudiante.bloques }); },
+  });
+}
+

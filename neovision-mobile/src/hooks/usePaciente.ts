@@ -31,7 +31,20 @@ export function useReservar() {
 export function useCancelar() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (idCita: number) => citaService.cancelarPaciente(idCita),
+    mutationFn: ({ idCita, motivo }: { idCita: number; motivo: string }) =>
+      citaService.cancelarPaciente(idCita, motivo),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.paciente.disponibles });
+      qc.invalidateQueries({ queryKey: qk.paciente.misCitas });
+    },
+  });
+}
+
+export function useReprogramar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idCita, idCitaNueva }: { idCita: number; idCitaNueva: number }) =>
+      citaService.reprogramarPaciente(idCita, idCitaNueva),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.paciente.disponibles });
       qc.invalidateQueries({ queryKey: qk.paciente.misCitas });

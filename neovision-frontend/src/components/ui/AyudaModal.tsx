@@ -75,7 +75,7 @@ const CONTENIDO: Record<Rol, { titulo: string; secciones: Seccion[] }> = {
         titulo: 'Cómo fluye una historia clínica',
         items: [
           '1. Disponibles: asigna un paciente (nuevo o existente) a uno de tus bloques.',
-          '2. Agendadas: abre la historia clínica de la cita y diligénciala.',
+          '2. Agendadas: abre la historia clínica de la cita y diligénciala. Desde aquí también puedes reprogramar al paciente a otro de tus bloques libres o cancelar la cita (con motivo, hasta 1 hora antes).',
           '3. "Enviar a revisión": pasa a tu docente. Desde ese momento no puedes editarla.',
           '4. El docente la firma (queda finalizada) o te la devuelve con un motivo para que corrijas y la reenvíes.',
         ],
@@ -116,7 +116,9 @@ const CONTENIDO: Record<Rol, { titulo: string; secciones: Seccion[] }> = {
         titulo: 'Tus citas',
         items: [
           'Disponibles: elige un bloque de cita según la especialidad que necesitas y resérvalo.',
-          'Mis citas: consulta el estado de tus citas reservadas o cancélalas si ya no puedes asistir.',
+          'Mis citas: consulta el estado de tus citas reservadas, reprográmalas a otro horario o cancélalas si ya no puedes asistir (hasta 1 hora antes).',
+          'Puedes cancelar como máximo 3 citas en 30 días; si necesitas otra fecha, mejor reprograma.',
+          'Cada cita se puede reprogramar hasta 2 veces; para más cambios, comunícate con la secretaría.',
           'Solo puedes tener una cita reservada a la vez: espera a que se complete, se cancele o venza para agendar otra.',
           'Te llegan recordatorios por correo 24 horas y 1 hora antes de la cita.',
         ],

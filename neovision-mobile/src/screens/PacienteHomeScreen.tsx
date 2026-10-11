@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { Button } from '../components/Button';
 import { CitaCard } from '../components/CitaCard';
 import { DataList } from '../components/DataList';
+import { MotivoModal } from '../components/MotivoModal';
 import { OptionPickerModal } from '../components/OptionPickerModal';
 import { RoleHeader } from '../components/RoleHeader';
 import { Screen } from '../components/Screen';
@@ -12,7 +13,7 @@ import { Tabs } from '../components/Tabs';
 import { toast } from '../store/toastStore';
 import { useEspecialidades } from '../hooks/useEspecialidades';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
-import { useBloquesDisponibles, useCancelar, useMisCitas, useReservar } from '../hooks/usePaciente';
+import { useBloquesDisponibles, useCancelar, useMisCitas, useReprogramar, useReservar } from '../hooks/usePaciente';
 import type { MainStackParamList } from '../navigation/types';
 import type { CitaResponse, EstadoCita } from '../types/cita';
 import { SUBTIPOS_CONTROL } from '../types/especialidad';
@@ -26,6 +27,8 @@ export function PacienteHomeScreen() {
   const [tab, setTab] = useState<Tab>('disponibles');
   const [idEspFiltro, setIdEspFiltro] = useState<number | undefined>(undefined);
   const [subtipoParaCita, setSubtipoParaCita] = useState<CitaResponse | null>(null);
+  const [citaACancelar, setCitaACancelar] = useState<CitaResponse | null>(null);
+  const [citaAReprogramar, setCitaAReprogramar] = useState<CitaResponse | null>(null);
   const online = useOnlineStatus();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
@@ -34,6 +37,9 @@ export function PacienteHomeScreen() {
   const misCitas    = useMisCitas();
   const reservar    = useReservar();
   const cancelar    = useCancelar();
+  const reprogramar = useReprogramar();
+  // Destinos para reprogramar: bloques libres de la misma especialidad que la cita.
+  const destinosQ   = useBloquesDisponibles(citaAReprogramar?.idEspecialidad ?? undefined);
 
   const especialidades = especialidadesQ.data ?? [];
   const espSeleccionada = useMemo(
@@ -82,18 +88,23 @@ export function PacienteHomeScreen() {
     );
   };
 
-  const handleCancelar = (cita: CitaResponse) => {
-    Alert.alert('Cancelar cita', '¿Seguro que quieres cancelar esta cita?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Si, cancelar',
-        style: 'destructive',
-        onPress: () => cancelar.mutate(cita.idCita, {
-          onSuccess: () => toast.success('Cita cancelada'),
-          onError: (e) => Alert.alert('Error', errorMessage(e, 'No se pudo cancelar')!),
-        }),
-      },
-    ]);
+  const handleCancelar = (motivo: string) => {
+    const cita = citaACancelar;
+    if (!cita) return;
+    cancelar.mutate({ idCita: cita.idCita, motivo }, {
+      onSuccess: () => { setCitaACancelar(null); toast.success('Cita cancelada'); },
+      onError: (e) => Alert.alert('Error', errorMessage(e, 'No se pudo cancelar')!),
+    });
+  };
+
+  const handleReprogramar = (idCitaNueva: number) => {
+    const cita = citaAReprogramar;
+    setCitaAReprogramar(null);
+    if (!cita) return;
+    reprogramar.mutate({ idCita: cita.idCita, idCitaNueva }, {
+      onSuccess: () => toast.success('Cita reprogramada'),
+      onError: (e) => Alert.alert('Error', errorMessage(e, 'No se pudo reprogramar')!),
+    });
   };
 
   const renderDisponible = (cita: CitaResponse) => (
@@ -117,13 +128,21 @@ export function PacienteHomeScreen() {
       onPress={() => navigation.navigate('CitaDetail', { cita })}
       actions={
         cita.estado === 'RESERVADO'
-          ? <Button
-              title={online ? 'Cancelar cita' : 'Sin conexion'}
-              variant="danger"
-              disabled={!online}
-              loading={cancelar.isPending && cancelar.variables === cita.idCita}
-              onPress={() => handleCancelar(cita)}
-            />
+          ? <>
+              <Button
+                title={!online ? 'Sin conexion' : cita.reprogramacionesRestantes === 0 ? 'Sin reprogramaciones' : 'Reprogramar'}
+                variant="secondary"
+                disabled={!online || cita.reprogramacionesRestantes === 0}
+                loading={reprogramar.isPending && reprogramar.variables?.idCita === cita.idCita}
+                onPress={() => setCitaAReprogramar(cita)}
+              />
+              <Button
+                title={online ? 'Cancelar cita' : 'Sin conexion'}
+                variant="danger"
+                disabled={!online}
+                onPress={() => setCitaACancelar(cita)}
+              />
+            </>
           : null
       }
     />
@@ -187,6 +206,27 @@ export function PacienteHomeScreen() {
           if (cita) ejecutarReserva(cita, key);
         }}
         onClose={() => setSubtipoParaCita(null)}
+      />
+
+      <OptionPickerModal
+        visible={citaAReprogramar !== null}
+        title="Nuevo horario"
+        options={(destinosQ.data ?? []).map(b => ({
+          key: String(b.idCita),
+          label: `${b.fechaSesion} · ${b.horaInicio.slice(0, 5)}–${b.horaFin.slice(0, 5)}`,
+          sublabel: `${b.nombreSalon ?? 'Sin salon'} · ${b.nombreDocente}`,
+        }))}
+        onSelect={(key) => handleReprogramar(Number(key))}
+        onClose={() => setCitaAReprogramar(null)}
+      />
+
+      <MotivoModal
+        visible={citaACancelar !== null}
+        title="Cancelar cita"
+        confirmLabel="Si, cancelar"
+        loading={cancelar.isPending}
+        onConfirm={handleCancelar}
+        onClose={() => setCitaACancelar(null)}
       />
     </Screen>
   );

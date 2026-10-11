@@ -61,6 +61,9 @@ public class CitaServiceImpl implements CitaService {
     private final AtencionRepository atencionRepository;
     private final MetaPacientesSemestreRepository metaPacientesSemestreRepository;
 
+    /** Veces que el paciente puede reprogramar una misma reserva. */
+    static final int MAX_REPROGRAMACIONES_PACIENTE = 2;
+
     private static final java.util.Set<String> SUBTIPOS_CONTROL_VALIDOS = java.util.Set.of(
             "lentes de contacto", "funcional", "protesis", "prueba ambulatoria", "terapia"
     );
@@ -277,10 +280,7 @@ public class CitaServiceImpl implements CitaService {
                 Estudiante estudiante = cita.getEstudiante();
                 Docente docente = sesion.getDocente();
 
-                cita.setPaciente(null);
-                cita.setFechaReserva(null);
-                cita.setEstado("DISPONIBLE");
-                citaRepository.save(cita);
+                cancelarYLiberarCupo(cita, "ADMIN", cita.getObservaciones());
 
                 // Email de cancelacion por admin
                 if (paciente != null) {
@@ -289,7 +289,7 @@ public class CitaServiceImpl implements CitaService {
                             estudiante.getCorreo(), estudiante.getNombre() + " " + estudiante.getApellido(),
                             docente.getCorreo(), docente.getNombre() + " " + docente.getApellido(),
                             sesion.getFecha().toString(), horaIniStr(sesion), horaFinStr(sesion),
-                            "Administracion");
+                            "Administracion", cita.getObservaciones());
                 }
                 return toResponse(cita);
             }
@@ -443,20 +443,16 @@ public class CitaServiceImpl implements CitaService {
             throw new EstadoInvalidoException("Solo se pueden cancelar citas reservadas");
         }
 
-        // Validar minimo 1 hora de antelacion (solo si la sesion tiene hora definida)
+        requireMotivoValido(observaciones, false);
         SesionPractica sesion = cita.getSesion();
-        if (sesion.getHoraInicio() != null) {
-            LocalDateTime fechaHoraCita = LocalDateTime.of(sesion.getFecha(), sesion.getHoraInicio());
-            if (LocalDateTime.now().plusHours(1).isAfter(fechaHoraCita)) {
-                throw new EstadoInvalidoException("Solo puedes cancelar con al menos 1 hora de antelación");
-            }
-        }
+        requireAntelacion(sesion, "cancelar");
 
         // Validar limite de cancelaciones: máximo 3 por mes
         LocalDateTime hace30Dias = LocalDateTime.now().minusDays(30);
         long cancelacionesEnMes = citaRepository.countCancelacionesEnMes(paciente.getIdPaciente(), hace30Dias);
         if (cancelacionesEnMes >= 3) {
-            throw new EstadoInvalidoException("Has alcanzado el límite de 3 cancelaciones en los últimos 30 días. Podrás reservar nuevamente en 24 horas");
+            throw new EstadoInvalidoException("Has alcanzado el límite de 3 cancelaciones en los últimos 30 días. "
+                    + "Si no puedes asistir, reprograma la cita o comunícate con la secretaría");
         }
 
         // Guardar datos del paciente antes de limpiar
@@ -469,21 +465,38 @@ public class CitaServiceImpl implements CitaService {
         String horaI = horaIniStr(sesion);
         String horaF = horaFinStr(sesion);
 
-        // Marcar como CANCELADO (no vuelve a DISPONIBLE para tracking de cancelaciones)
-        cita.setEstado("CANCELADO");
-        cita.setPaciente(null);
-        cita.setFechaReserva(null);
-        cita.setObservaciones(observaciones);
-        citaRepository.save(cita);
+        cancelarYLiberarCupo(cita, "PACIENTE", observaciones);
 
         // Email de cancelacion
         emailService.enviarCancelacion(
                 correoPacienteNotif, nombrePacienteNotif,
                 correosEstudiantes, nombresEstudiantes,
                 docente.getCorreo(), docente.getNombre() + " " + docente.getApellido(),
-                fecha, horaI, horaF, "Paciente");
+                fecha, horaI, horaF, "Paciente", observaciones);
 
         return toResponse(cita);
+    }
+
+    @Override
+    @Transactional
+    public CitaResponse reprogramarPaciente(String correoPaciente, Integer idCitaActual, Integer idCitaNueva) {
+        Cita actual = citaRepository.findById(idCitaActual)
+                .orElseThrow(() -> new CitaNoEncontradaException("Cita no encontrada"));
+        Paciente paciente = findPacienteByCorreo(correoPaciente);
+
+        if (actual.getPaciente() == null || !actual.getPaciente().getIdPaciente().equals(paciente.getIdPaciente())) {
+            throw new AccesoNoAutorizadoException("Esta cita no te pertenece");
+        }
+        Cita nueva = citaRepository.findById(idCitaNueva)
+                .orElseThrow(() -> new CitaNoEncontradaException("Bloque destino no encontrado"));
+        requireAntelacion(actual.getSesion(), "reprogramar");
+        if (actual.getReprogramacionesPaciente() >= MAX_REPROGRAMACIONES_PACIENTE) {
+            throw new EstadoInvalidoException("Ya reprogramaste esta cita " + MAX_REPROGRAMACIONES_PACIENTE
+                    + " veces. Si necesitas otro cambio, comunícate con la secretaría");
+        }
+
+        moverReserva(actual, nueva, "Reprogramada por el paciente", true);
+        return toResponse(nueva);
     }
 
     @Override
@@ -653,6 +666,57 @@ public class CitaServiceImpl implements CitaService {
         return cambiarEstado(idCita, req);
     }
 
+    @Override
+    @Transactional
+    public CitaResponse cancelarEstudiante(String correoEstudiante, Integer idCita, String observaciones) {
+        Cita cita = citaRepository.findById(idCita)
+                .orElseThrow(() -> new CitaNoEncontradaException("Cita no encontrada"));
+        Estudiante estudiante = findEstudianteByCorreo(correoEstudiante);
+
+        if (!CitaEstudiantes.incluye(cita, estudiante.getIdEstudiante())) {
+            throw new AccesoNoAutorizadoException("Este bloque no te pertenece");
+        }
+        if (!"RESERVADO".equals(cita.getEstado())) {
+            throw new EstadoInvalidoException("Solo se pueden cancelar citas reservadas");
+        }
+        requireMotivoValido(observaciones, true);
+        SesionPractica sesion = cita.getSesion();
+        requireAntelacion(sesion, "cancelar");
+
+        Paciente paciente = cita.getPaciente();
+        Docente docente = sesion.getDocente();
+        cancelarYLiberarCupo(cita, "ESTUDIANTE", observaciones);
+
+        emailService.enviarCancelacion(
+                paciente.getCorreo(), paciente.getNombre() + " " + paciente.getApellido(),
+                CitaEstudiantes.correos(cita), CitaEstudiantes.nombres(cita),
+                docente.getCorreo(), docente.getNombre() + " " + docente.getApellido(),
+                sesion.getFecha().toString(), horaIniStr(sesion), horaFinStr(sesion),
+                "Estudiante", observaciones);
+
+        return toResponse(cita);
+    }
+
+    @Override
+    @Transactional
+    public CitaResponse reprogramarEstudiante(String correoEstudiante, Integer idCitaActual, Integer idCitaNueva) {
+        Cita actual = citaRepository.findById(idCitaActual)
+                .orElseThrow(() -> new CitaNoEncontradaException("Cita no encontrada"));
+        Cita nueva = citaRepository.findById(idCitaNueva)
+                .orElseThrow(() -> new CitaNoEncontradaException("Bloque destino no encontrado"));
+        Estudiante estudiante = findEstudianteByCorreo(correoEstudiante);
+
+        // El estudiante solo mueve pacientes entre sus propios bloques.
+        if (!CitaEstudiantes.incluye(actual, estudiante.getIdEstudiante())
+                || !CitaEstudiantes.incluye(nueva, estudiante.getIdEstudiante())) {
+            throw new AccesoNoAutorizadoException("Solo puedes reprogramar entre tus propios bloques");
+        }
+        requireAntelacion(actual.getSesion(), "reprogramar");
+
+        moverReserva(actual, nueva, "Reprogramada por el estudiante", false);
+        return toResponse(nueva);
+    }
+
     // ===================== ADMIN REPROGRAMAR =====================
 
     @Override
@@ -663,53 +727,144 @@ public class CitaServiceImpl implements CitaService {
         Cita citaNueva = citaRepository.findById(idCitaNueva)
                 .orElseThrow(() -> new CitaNoEncontradaException("Bloque destino no encontrado"));
 
-        if (!"RESERVADO".equals(citaActual.getEstado())) {
-            throw new EstadoInvalidoException("Solo se pueden reprogramar citas reservadas");
-        }
-        if (!"DISPONIBLE".equals(citaNueva.getEstado())) {
-            throw new EstadoInvalidoException("El bloque destino ya no está disponible");
-        }
-
-        Paciente paciente = citaActual.getPaciente();
-
-        // El paciente no puede tener otra cita reservada aparte de la que se mueve
-        if (paciente != null) {
-            requireSinCitaReservada(paciente.getIdPaciente(), idCitaActual,
-                    "El paciente ya tiene otra cita reservada");
-        }
-
-        // Liberar la cita actual
-        citaActual.setEstado("DISPONIBLE");
-        citaActual.setPaciente(null);
-        citaActual.setFechaReserva(null);
-        citaActual.setObservaciones("Reprogramada por administracion");
-        citaRepository.save(citaActual);
-
-        // Reservar la nueva
-        citaNueva.setPaciente(paciente);
-        citaNueva.setEstado("RESERVADO");
-        citaNueva.setFechaReserva(LocalDateTime.now());
-        citaRepository.save(citaNueva);
-
-        // Email de reprogramacion
-        if (paciente != null) {
-            SesionPractica sesionNueva = citaNueva.getSesion();
-            Docente docente = sesionNueva.getDocente();
-            Salon salonEmail = sesionNueva.getSalon();
-            emailService.enviarReprogramacion(
-                    paciente.getCorreo(), paciente.getNombre() + " " + paciente.getApellido(),
-                    CitaEstudiantes.correos(citaNueva), CitaEstudiantes.nombres(citaNueva),
-                    docente.getCorreo(), docente.getNombre() + " " + docente.getApellido(),
-                    citaActual.getSesion().getFecha().toString(), horaIniStr(citaActual.getSesion()),
-                    sesionNueva.getFecha().toString(), horaIniStr(sesionNueva),
-                    salonEmail != null ? salonEmail.getNombre() : "Sin salon",
-                    salonEmail != null ? salonEmail.getEspacio().getNombre() : "");
-        }
-
+        moverReserva(citaActual, citaNueva, "Reprogramada por administracion", false);
         return toResponse(citaNueva);
     }
 
     // ===================== HELPERS =====================
+
+    /**
+     * Marca la cita como CANCELADO conservando al paciente (historial y limite de
+     * cancelaciones) y libera el cupo creando una cita DISPONIBLE nueva en el
+     * mismo bloque, con los mismos estudiantes.
+     */
+    private void cancelarYLiberarCupo(Cita cita, String canceladaPor, String observaciones) {
+        cita.setEstado("CANCELADO");
+        cita.setCanceladaPor(canceladaPor);
+        cita.setFechaCancelacion(LocalDateTime.now());
+        cita.setObservaciones(observaciones);
+        citaRepository.save(cita);
+
+        Cita libre = new Cita();
+        libre.setSesion(cita.getSesion());
+        libre.setEstudiante(cita.getEstudiante());
+        libre.setEstudiante2(cita.getEstudiante2());
+        libre.setEstado("DISPONIBLE");
+        citaRepository.save(libre);
+    }
+
+    /**
+     * Mueve la reserva de un paciente de una cita RESERVADO a un bloque DISPONIBLE,
+     * conservando especialidad, subtipo y el contador de reprogramaciones (que sube
+     * solo si la pide el paciente), y libera el bloque original. Envia el correo
+     * de reprogramacion a todos los actores.
+     */
+    private void moverReserva(Cita actual, Cita nueva, String motivo, boolean porPaciente) {
+        if (!"RESERVADO".equals(actual.getEstado())) {
+            throw new EstadoInvalidoException("Solo se pueden reprogramar citas reservadas");
+        }
+        if (!"DISPONIBLE".equals(nueva.getEstado())) {
+            throw new EstadoInvalidoException("El bloque destino ya no está disponible");
+        }
+        if (actual.getIdCita().equals(nueva.getIdCita())) {
+            throw new EstadoInvalidoException("El bloque destino debe ser distinto del actual");
+        }
+        if (!Boolean.TRUE.equals(nueva.getSesion().getActivo())) {
+            throw new EstadoInvalidoException("La sesión del bloque destino no está activa");
+        }
+        requireSesionFutura(nueva.getSesion());
+        // Si ya se abrio la historia clinica de esta cita, moverla dejaria la
+        // atencion colgada de un bloque libre sin paciente.
+        if (atencionRepository.existsByCitaIdCita(actual.getIdCita())) {
+            throw new EstadoInvalidoException(
+                    "No se puede reprogramar: esta cita ya tiene una atención de historia clínica asociada.");
+        }
+
+        Paciente paciente = actual.getPaciente();
+        Especialidad especialidad = actual.getEspecialidad();
+        String subtipo = actual.getSubtipoControl();
+        int reprogramaciones = actual.getReprogramacionesPaciente() + (porPaciente ? 1 : 0);
+
+        // El paciente no puede tener otra cita reservada aparte de la que se mueve
+        requireSinCitaReservada(paciente.getIdPaciente(), actual.getIdCita(),
+                "El paciente ya tiene otra cita reservada");
+
+        // El docente del bloque destino debe poder atender la especialidad de la cita.
+        Docente docenteNuevo = nueva.getSesion().getDocente();
+        if (especialidad != null && !Boolean.TRUE.equals(especialidad.getEsDefault())
+                && (docenteNuevo.getEspecialidades() == null
+                    || docenteNuevo.getEspecialidades().stream()
+                        .noneMatch(e -> e.getIdEspecialidad().equals(especialidad.getIdEspecialidad())))) {
+            throw new EstadoInvalidoException(
+                    "El docente del bloque destino no atiende la especialidad '"
+                    + especialidad.getNombre() + "'. Selecciona otro horario.");
+        }
+
+        SesionPractica sesionAnterior = actual.getSesion();
+
+        // Liberar la cita actual
+        actual.setEstado("DISPONIBLE");
+        actual.setPaciente(null);
+        actual.setFechaReserva(null);
+        actual.setEspecialidad(null);
+        actual.setSubtipoControl(null);
+        actual.setRecordatorio24hEnviado(false);
+        actual.setRecordatorio1hEnviado(false);
+        actual.setReprogramacionesPaciente(0);
+        actual.setObservaciones(motivo);
+        citaRepository.save(actual);
+
+        // Reservar la nueva
+        nueva.setPaciente(paciente);
+        nueva.setEspecialidad(especialidad);
+        nueva.setSubtipoControl(subtipo);
+        nueva.setEstado("RESERVADO");
+        nueva.setFechaReserva(LocalDateTime.now());
+        nueva.setRecordatorio24hEnviado(false);
+        nueva.setRecordatorio1hEnviado(false);
+        nueva.setReprogramacionesPaciente(reprogramaciones);
+        citaRepository.save(nueva);
+
+        SesionPractica sesionNueva = nueva.getSesion();
+        Salon salonEmail = sesionNueva.getSalon();
+        emailService.enviarReprogramacion(
+                paciente.getCorreo(), paciente.getNombre() + " " + paciente.getApellido(),
+                CitaEstudiantes.correos(nueva), CitaEstudiantes.nombres(nueva),
+                docenteNuevo.getCorreo(), docenteNuevo.getNombre() + " " + docenteNuevo.getApellido(),
+                sesionAnterior.getFecha().toString(), horaIniStr(sesionAnterior),
+                sesionNueva.getFecha().toString(), horaIniStr(sesionNueva),
+                salonEmail != null ? salonEmail.getNombre() : "Sin salon",
+                salonEmail != null ? salonEmail.getEspacio().getNombre() : "");
+    }
+
+    /** La columna observaciones admite 255 caracteres; el motivo puede ser obligatorio. */
+    private void requireMotivoValido(String motivo, boolean obligatorio) {
+        if (obligatorio && (motivo == null || motivo.isBlank())) {
+            throw new EstadoInvalidoException("Debes indicar el motivo de la cancelación");
+        }
+        if (motivo != null && motivo.length() > 255) {
+            throw new EstadoInvalidoException("El motivo no puede superar 255 caracteres");
+        }
+    }
+
+    /** Exige al menos 1 hora de antelacion (solo si la sesion tiene hora definida). */
+    private void requireAntelacion(SesionPractica sesion, String accion) {
+        if (sesion.getHoraInicio() == null) return;
+        LocalDateTime fechaHoraCita = LocalDateTime.of(sesion.getFecha(), sesion.getHoraInicio());
+        if (LocalDateTime.now().plusHours(1).isAfter(fechaHoraCita)) {
+            throw new EstadoInvalidoException("Solo puedes " + accion + " con al menos 1 hora de antelación");
+        }
+    }
+
+    /** El bloque destino de una reprogramacion no puede estar en el pasado. */
+    private void requireSesionFutura(SesionPractica sesion) {
+        LocalDateTime inicio = sesion.getHoraInicio() != null
+                ? LocalDateTime.of(sesion.getFecha(), sesion.getHoraInicio())
+                : sesion.getFecha().atStartOfDay().plusDays(1);
+        if (!inicio.isAfter(LocalDateTime.now())) {
+            throw new EstadoInvalidoException("El bloque destino ya pasó");
+        }
+    }
 
     /**
      * Exige que el paciente no tenga ya otra cita RESERVADO. Un paciente solo
@@ -803,7 +958,10 @@ public class CitaServiceImpl implements CitaService {
                 esp != null ? esp.getNombre() : null,
                 esp != null ? esp.getObservacionRecordatorio() : null,
                 cita.getSubtipoControl(),
-                especialidadesDocente
+                especialidadesDocente,
+                cita.getCanceladaPor(),
+                cita.getFechaCancelacion() != null ? cita.getFechaCancelacion().toString() : null,
+                Math.max(0, MAX_REPROGRAMACIONES_PACIENTE - cita.getReprogramacionesPaciente())
         );
     }
 

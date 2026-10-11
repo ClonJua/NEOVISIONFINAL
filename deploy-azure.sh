@@ -34,7 +34,14 @@ case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) MVN=./mvnw.cmd ;; esac
 JAR=$(ls neovision/target/neovision-*.jar | grep -v '\.original$' | head -1)
 echo "    jar: $JAR ($(du -h "$JAR" | cut -f1))"
 
-echo "==> 3/4 az webapp deploy -> $APP"
+echo "==> 3/4 Ajustes de produccion + az webapp deploy -> $APP"
+# Deshabilita la documentacion de la API (Swagger / OpenAPI) en produccion.
+# Sin esto, /v3/api-docs y /swagger-ui quedan accesibles sin autenticacion y
+# publican el mapa completo de la API. Se fija en cada despliegue para que la
+# proteccion no dependa de recordar configurarla a mano en el portal.
+az webapp config appsettings set -n "$APP" -g "$RG" \
+  --settings SWAGGER_ENABLED=false --only-show-errors >/dev/null
+
 az webapp deploy -n "$APP" -g "$RG" --type jar --src-path "$JAR" --clean true --restart true --only-show-errors
 
 if [ "${TAIL_LOGS:-1}" = "1" ]; then

@@ -49,7 +49,26 @@ export interface CitaResponse {
   subtipoControl?: string | null;
   // Especialidades del docente que supervisa la sesion
   especialidadesDocente?: EspecialidadInfo[];
+  // Cancelación: quién y cuándo (null si no está cancelada o es anterior al registro)
+  canceladaPor?: 'PACIENTE' | 'ESTUDIANTE' | 'ADMIN' | null;
+  fechaCancelacion?: string | null;
+  /** Reprogramaciones que le quedan al paciente sobre esta reserva. */
+  reprogramacionesRestantes?: number;
 }
+
+const AUTOR_CANCELACION: Record<string, string> = {
+  PACIENTE: 'el paciente',
+  ESTUDIANTE: 'el estudiante',
+  ADMIN: 'la administración',
+};
+
+/** "Cancelada por el paciente el 2026-10-08 14:30", o null si no aplica. */
+export const textoCancelacion = (c: Pick<CitaResponse, 'estado' | 'canceladaPor' | 'fechaCancelacion'>) => {
+  if (c.estado !== 'CANCELADO' || !c.canceladaPor) return null;
+  const quien = AUTOR_CANCELACION[c.canceladaPor] ?? c.canceladaPor;
+  const cuando = c.fechaCancelacion ? ` el ${c.fechaCancelacion.replace('T', ' ').substring(0, 16)}` : '';
+  return `Cancelada por ${quien}${cuando}`;
+};
 
 /** "Ana Pérez" o "Ana Pérez y Luis Gómez" cuando el bloque lo atienden dos estudiantes. */
 export const nombresEstudiantes = (c: Pick<CitaResponse, 'nombreEstudiante' | 'nombreEstudiante2'>) =>
@@ -81,6 +100,8 @@ export const citaService = {
     api.post<ApiResponse<CitaResponse>>(`/paciente/citas/${idCita}/reservar`, data ?? {}),
   cancelarPaciente: (idCita: number, observaciones?: string) =>
     api.patch<ApiResponse<CitaResponse>>(`/paciente/citas/${idCita}/cancelar`, { observaciones }),
+  reprogramarPaciente: (idCitaActual: number, idCitaNueva: number) =>
+    api.patch<ApiResponse<CitaResponse>>(`/paciente/citas/${idCitaActual}/reprogramar`, { idCitaNueva }),
   misCitas: () =>
     api.get<ApiResponse<CitaResponse[]>>('/paciente/citas'),
 
@@ -104,4 +125,8 @@ export const citaService = {
     api.get<ApiResponse<{ semestre: number; atendidos: number; meta: number }>>('/estudiante/citas/progreso'),
   asignarPaciente: (idCita: number, idPaciente: number) =>
     api.post<ApiResponse<CitaResponse>>(`/estudiante/citas/${idCita}/asignar-paciente`, { idPaciente }),
+  cancelarEstudiante: (idCita: number, observaciones: string) =>
+    api.patch<ApiResponse<CitaResponse>>(`/estudiante/citas/${idCita}/cancelar`, { observaciones }),
+  reprogramarEstudiante: (idCitaActual: number, idCitaNueva: number) =>
+    api.patch<ApiResponse<CitaResponse>>(`/estudiante/citas/${idCitaActual}/reprogramar`, { idCitaNueva }),
 };
