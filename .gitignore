@@ -49,3 +49,7 @@ neovision/neovision-frontend/
 # (pueden contener rutas locales y detalles de vulnerabilidades sin corregir)
 security/reports/*
 !security/reports/.gitkeep
+
+# Skills locales de asistentes de IA (no forman parte del proyecto)
+.agents/
+skills-lock.json
